@@ -247,6 +247,163 @@ app.get("/api/stats/most-predicted-winner", (req, res) => {
   }
 });
 
+// Get upset alerts - least predicted winners by round
+app.get("/api/stats/upset-alerts", (req, res) => {
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+
+    if (predictions.length === 0) {
+      return res.json({
+        totalPredictions: 0,
+        upsetAlerts: [],
+      });
+    }
+
+    // Count how many times each player is predicted to win each match by round
+    const roundStats = [];
+
+    predictions.forEach((prediction) => {
+      const bracket = prediction.bracket;
+
+      if (bracket.rounds && Array.isArray(bracket.rounds)) {
+        bracket.rounds.forEach((round, roundIdx) => {
+          if (!roundStats[roundIdx]) {
+            roundStats[roundIdx] = {
+              roundName: round.name || `Round ${roundIdx + 1}`,
+              playerCounts: {},
+              totalMatches: 0,
+            };
+          }
+
+          if (round.matches && Array.isArray(round.matches)) {
+            round.matches.forEach((match) => {
+              const winner = match.winner;
+              if (winner && !match.isBye) {
+                // Count per round
+                roundStats[roundIdx].playerCounts[winner] =
+                  (roundStats[roundIdx].playerCounts[winner] || 0) + 1;
+                roundStats[roundIdx].totalMatches++;
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Build upset alerts - find least predicted winners in each round
+    const upsetAlerts = roundStats
+      .filter((roundData, idx) => {
+        // Only show rounds with actual predictions (not byes only)
+        return Object.keys(roundData.playerCounts).length > 0;
+      })
+      .map((roundData) => {
+        let leastPredictedPlayer = null;
+        let minCountInRound = Infinity;
+
+        for (const [player, count] of Object.entries(roundData.playerCounts)) {
+          if (count < minCountInRound) {
+            minCountInRound = count;
+            leastPredictedPlayer = player;
+          }
+        }
+
+        return {
+          round: roundData.roundName,
+          playerName: leastPredictedPlayer || "N/A",
+          count: minCountInRound === Infinity ? 0 : minCountInRound,
+          totalMatches: roundData.totalMatches,
+          percent:
+            roundData.totalMatches > 0
+              ? Math.round((minCountInRound / roundData.totalMatches) * 100)
+              : 0,
+        };
+      });
+
+    res.json({
+      totalPredictions: predictions.length,
+      upsetAlerts: upsetAlerts.sort((a, b) => a.percent - b.percent), // Sort by least predicted
+    });
+  } catch (err) {
+    console.error("Error calculating upset alerts:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get popular matchups - most discussed matches by round
+app.get("/api/stats/popular-matchups", (req, res) => {
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+
+    if (predictions.length === 0) {
+      return res.json({
+        totalPredictions: 0,
+        popularMatchups: [],
+      });
+    }
+
+    // Count how many times each matchup is predicted by round
+    const matchupStats = [];
+
+    predictions.forEach((prediction) => {
+      const bracket = prediction.bracket;
+
+      if (bracket.rounds && Array.isArray(bracket.rounds)) {
+        bracket.rounds.forEach((round, roundIdx) => {
+          if (!matchupStats[roundIdx]) {
+            matchupStats[roundIdx] = {
+              roundName: round.name || `Round ${roundIdx + 1}`,
+              matchups: {},
+            };
+          }
+
+          if (round.matches && Array.isArray(round.matches)) {
+            round.matches.forEach((match) => {
+              const playerA = match.playerA;
+              const playerB = match.playerB;
+              if (!playerA || !playerB) return;
+
+              // Create matchup key (sorted to avoid duplicates like A vs B and B vs A)
+              const matchupKey = [playerA, playerB].sort().join(" vs ");
+              matchupStats[roundIdx].matchups[matchupKey] =
+                (matchupStats[roundIdx].matchups[matchupKey] || 0) + 1;
+            });
+          }
+        });
+      }
+    });
+
+    // Build popular matchups list - top matchups by prediction count per round
+    const popularMatchups = matchupStats
+      .filter((data, idx) => {
+        return Object.keys(data.matchups).length > 0;
+      })
+      .map((roundData) => {
+        // Sort matchups by count and get top ones from this round
+        const sortedMatches = Object.entries(roundData.matchups)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3); // Top 3 per round
+
+        return sortedMatches.map(([matchup, count]) => ({
+          round: roundData.roundName,
+          matchup: matchup.replace(" vs ", " vs "),
+          count,
+        }));
+      })
+      .flat()
+      .sort((a, b) => b.count - a.count); // Sort by overall popularity
+
+    res.json({
+      totalPredictions: predictions.length,
+      popularMatchups: popularMatchups.slice(0, 10), // Top 10 overall
+    });
+  } catch (err) {
+    console.error("Error calculating popular matchups:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 function generateBracketStructure() {
   // 36 players: 16 first round matches + 20 byes to round of 16
   return {
@@ -317,6 +474,9 @@ if (!fs.existsSync(playersDataPath)) {
   fs.writeFileSync(playersDataPath, JSON.stringify(initialPlayers, null, 2));
   console.log("Created tournament_players.json");
 }
+
+// Frontend static files
+app.use(express.static(path.join(__dirname, "../frontend/public")));
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
