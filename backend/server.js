@@ -23,6 +23,23 @@ if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
 
+const MAX_PAID_ENTRIES_PER_PLAYER = 2;
+const MAX_FUN_ENTRIES_PER_PLAYER = 1;
+
+function normalizePlayerName(name) {
+  if (typeof name !== "string") return "";
+  return name.trim().toLowerCase();
+}
+
+function parseBetAmountUSD(betType) {
+  if (betType === undefined || betType === null) return 0;
+  const s = String(betType).trim();
+  if (s === "" || s.toLowerCase() === "fun") return 0;
+  const m = s.match(/\$(\d+(?:\.\d+)?)/);
+  if (m) return Number(m[1]);
+  return 0;
+}
+
 // Get all players (from tournament data file)
 app.get("/api/players", (req, res) => {
   try {
@@ -73,6 +90,34 @@ app.post("/api/predictions", (req, res) => {
     );
   }
 
+  const nameKey = normalizePlayerName(playerName);
+  const excludeId =
+    existingIndex >= 0 ? predictions[existingIndex].id : null;
+  const sameNameOthers = predictions.filter(
+    (p) => normalizePlayerName(p.playerName) === nameKey && p.id !== excludeId,
+  );
+  const paidOthers = sameNameOthers.filter(
+    (p) => parseBetAmountUSD(p.betType) > 0,
+  ).length;
+  const funOthers = sameNameOthers.filter(
+    (p) => parseBetAmountUSD(p.betType) === 0,
+  ).length;
+  const newIsPaid = parseBetAmountUSD(betType) > 0;
+
+  if (newIsPaid) {
+    if (paidOthers >= MAX_PAID_ENTRIES_PER_PLAYER) {
+      return res.status(400).json({
+        error: `Limit reached: at most ${MAX_PAID_ENTRIES_PER_PLAYER} paid entries per person (same name).`,
+      });
+    }
+  } else {
+    if (funOthers >= MAX_FUN_ENTRIES_PER_PLAYER) {
+      return res.status(400).json({
+        error: `Limit reached: at most ${MAX_FUN_ENTRIES_PER_PLAYER} fun (no bet) entry per person (same name).`,
+      });
+    }
+  }
+
   // Use existing ID if found, otherwise generate new one
   const predictionId =
     existingIndex >= 0 ? predictions[existingIndex].id : uuidv4();
@@ -96,6 +141,47 @@ app.post("/api/predictions", (req, res) => {
     res.json({ success: true, prediction: newPrediction });
   } catch (err) {
     console.error("Error writing predictions:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Remaining entry slots for a name (case-insensitive)
+app.get("/api/player-entry-slots", (req, res) => {
+  try {
+    const raw = req.query.playerName || req.query.name || "";
+    const nameKey = normalizePlayerName(raw);
+    if (!nameKey) {
+      return res
+        .status(400)
+        .json({ error: "Query parameter playerName (or name) is required" });
+    }
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+    const mine = predictions.filter(
+      (p) => normalizePlayerName(p.playerName) === nameKey,
+    );
+    const paidCount = mine.filter(
+      (p) => parseBetAmountUSD(p.betType) > 0,
+    ).length;
+    const funCount = mine.filter(
+      (p) => parseBetAmountUSD(p.betType) === 0,
+    ).length;
+    res.json({
+      paidCount,
+      funCount,
+      paidMax: MAX_PAID_ENTRIES_PER_PLAYER,
+      funMax: MAX_FUN_ENTRIES_PER_PLAYER,
+      paidRemaining: Math.max(
+        0,
+        MAX_PAID_ENTRIES_PER_PLAYER - paidCount,
+      ),
+      funRemaining: Math.max(
+        0,
+        MAX_FUN_ENTRIES_PER_PLAYER - funCount,
+      ),
+    });
+  } catch (err) {
+    console.error("Error reading entry slots:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -287,15 +373,6 @@ app.get("/api/stats/unique-players", (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-function parseBetAmountUSD(betType) {
-  if (betType === undefined || betType === null) return 0;
-  const s = String(betType).trim();
-  if (s === "" || s.toLowerCase() === "fun") return 0;
-  const m = s.match(/\$(\d+(?:\.\d+)?)/);
-  if (m) return Number(m[1]);
-  return 0;
-}
 
 // Paid brackets, prize pool, and counts by entry type (betType)
 app.get("/api/stats/entry-pool", (req, res) => {

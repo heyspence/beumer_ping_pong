@@ -174,6 +174,12 @@
                     Predict all 16 Round of 32 games first, then watch the
                     bracket fill up automatically.
                 </p>
+                <p>
+                    <strong>Entry limits (per person, same name):</strong> up to
+                    <strong>2</strong> paid brackets (e.g. $5 each) and
+                    <strong>1</strong> fun (no bet) bracket. The server enforces
+                    these limits.
+                </p>
             </div>
 
             <form id="bracketForm">
@@ -211,6 +217,15 @@
                         <option value="$5">$5 Entry</option>
                     </select>
                 </div>
+                <p
+                    id="entrySlotsHint"
+                    style="
+                        margin-top: 10px;
+                        font-size: 14px;
+                        color: #495057;
+                        min-height: 1.2em;
+                    "
+                ></p>
                 <input type="hidden" id="playerId" value="" />
                 <div class="bracket-container" id="bracketContainer"></div>
                 <button type="submit" class="submit-btn">
@@ -497,6 +512,41 @@
                 setupEventListeners();
             }
 
+            async function refreshEntrySlotsHint() {
+                const hint = document.getElementById("entrySlotsHint");
+                const name = document
+                    .getElementById("playerName")
+                    .value.trim();
+                if (!name) {
+                    hint.textContent = "";
+                    return;
+                }
+                try {
+                    const res = await fetch(
+                        `${API_URL}/player-entry-slots?playerName=${encodeURIComponent(name)}`,
+                    );
+                    if (!res.ok) {
+                        hint.textContent = "";
+                        return;
+                    }
+                    const s = await res.json();
+                    hint.textContent = `For “${name}”: ${s.paidCount}/${s.paidMax} paid entries used, ${s.funCount}/${s.funMax} fun entry used.`;
+                } catch {
+                    hint.textContent = "";
+                }
+            }
+
+            document
+                .getElementById("playerName")
+                .addEventListener("blur", () => {
+                    refreshEntrySlotsHint();
+                });
+            document
+                .getElementById("betType")
+                .addEventListener("change", () => {
+                    refreshEntrySlotsHint();
+                });
+
             document
                 .getElementById("bracketForm")
                 .addEventListener("submit", async (e) => {
@@ -567,6 +617,7 @@
                                 "✅ Bracket submitted successfully! 🎉",
                                 "success",
                             );
+                            refreshEntrySlotsHint();
                             setTimeout(() => {
                                 document.querySelector(
                                     ".status",
