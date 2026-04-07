@@ -267,18 +267,68 @@
                 },
             ];
 
+            // Fetch and populate stats from backend API
+            async function loadStats() {
+                try {
+                    // Fetch total predictions
+                    const totalRes = await fetch(
+                        "/api/stats/total-predictions",
+                    );
+                    if (totalRes.ok) {
+                        const totalData = await totalRes.json();
+                        document.querySelector(
+                            ".stats-grid .stat-card:nth-child(1) .value",
+                        ).textContent = totalData.total || "0";
+                    }
+
+                    // Fetch most predicted winner
+                    const winnerRes = await fetch(
+                        "/api/stats/most-predicted-winner",
+                    );
+                    if (winnerRes.ok) {
+                        const winnerData = await winnerRes.json();
+                        document.querySelector(
+                            ".stats-grid .stat-card:nth-child(3) .value",
+                        ).textContent = winnerData.mostPredictedPlayer || "N/A";
+
+                        // Update most predicted table with real data
+                        const tbody =
+                            document.getElementById("mostPredictedBody");
+                        if (
+                            winnerData.breakdown &&
+                            winnerData.breakdown.length > 0
+                        ) {
+                            tbody.innerHTML = "";
+                            winnerData.breakdown.forEach((row) => {
+                                const tr = document.createElement("tr");
+                                tr.innerHTML = `
+                                    <td>${row.round}</td>
+                                    <td><span class="player-name">${row.playerName}</span></td>
+                                    <td><span class="win-count">${row.count}</span> predictions</td>
+                                    <td>${row.totalPlayers}</td>
+                                    <td>${row.percent}%</td>
+                                `;
+                                tbody.appendChild(tr);
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.log("Using dummy data - API not available:", err);
+                }
+            }
+
             // Populate Most Predicted Table
             const mostPredictedBody =
                 document.getElementById("mostPredictedBody");
             mostPredictedData.forEach((row) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-        <td>${row.round}</td>
-        <td><span class="player-name">${row.player}</span></td>
-        <td><span class="win-count">${row.count}</span> predictions</td>
-        <td>${row.total}</td>
-        <td>${row.percent}%</td>
-      `;
+                    <td>${row.round}</td>
+                    <td><span class="player-name">${row.player}</span></td>
+                    <td><span class="win-count">${row.count}</span> predictions</td>
+                    <td>${row.total}</td>
+                    <td>${row.percent}%</td>
+                `;
                 mostPredictedBody.appendChild(tr);
             });
 
@@ -287,11 +337,11 @@
             upsetAlertData.forEach((row) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-        <td>${row.round}</td>
-        <td><span class="player-name">${row.player}</span></td>
-        <td><span style="color: #dc3545;">${row.count} predictions</span></td>
-        <td>${row.percent}%</td>
-      `;
+                    <td>${row.round}</td>
+                    <td><span class="player-name">${row.player}</span></td>
+                    <td><span style="color: #dc3545;">${row.count} predictions</span></td>
+                    <td>${row.percent}%</td>
+                `;
                 upsetAlertBody.appendChild(tr);
             });
 
@@ -302,12 +352,15 @@
             popularMatchupData.forEach((row) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-        <td>${row.round}</td>
-        <td><strong>${row.matchup}</strong></td>
-        <td>${row.count} predictions</td>
-      `;
+                    <td>${row.round}</td>
+                    <td><strong>${row.matchup}</strong></td>
+                    <td>${row.count} predictions</td>
+                `;
                 popularMatchupsBody.appendChild(tr);
             });
+
+            // Load real stats on page load
+            window.addEventListener("DOMContentLoaded", loadStats);
         </script>
     </body>
 </html>
