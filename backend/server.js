@@ -150,26 +150,49 @@ app.get("/api/stats/total-predictions", (req, res) => {
   }
 });
 
-// Get most predicted winner across all rounds
+// Get most predicted winner across all rounds with breakdown
 app.get("/api/stats/most-predicted-winner", (req, res) => {
   try {
     const data = fs.readFileSync(DATA_FILE);
     const predictions = JSON.parse(data);
 
-    // Count how many times each player is predicted to win each match
-    const playerWinCounts = {};
+    if (predictions.length === 0) {
+      return res.json({
+        totalPredictions: 0,
+        mostPredictedWinner: "No data yet",
+        winCount: 0,
+        breakdown: [],
+      });
+    }
+
+    // Count how many times each player is predicted to win each match by round
+    const roundStats = [];
+    const allPlayerWins = {};
 
     predictions.forEach((prediction) => {
       const bracket = prediction.bracket;
 
-      // Loop through all rounds and matches in the bracket
       if (bracket.rounds && Array.isArray(bracket.rounds)) {
-        bracket.rounds.forEach((round) => {
+        bracket.rounds.forEach((round, roundIdx) => {
+          if (!roundStats[roundIdx]) {
+            roundStats[roundIdx] = {
+              roundName: round.name || `Round ${roundIdx + 1}`,
+              playerCounts: {},
+              totalMatches: 0,
+            };
+          }
+
           if (round.matches && Array.isArray(round.matches)) {
             round.matches.forEach((match) => {
               const winner = match.winner;
               if (winner && !match.isBye) {
-                playerWinCounts[winner] = (playerWinCounts[winner] || 0) + 1;
+                // Count per round
+                roundStats[roundIdx].playerCounts[winner] =
+                  (roundStats[roundIdx].playerCounts[winner] || 0) + 1;
+                roundStats[roundIdx].totalMatches++;
+
+                // Count across all rounds for overall winner
+                allPlayerWins[winner] = (allPlayerWins[winner] || 0) + 1;
               }
             });
           }
@@ -177,13 +200,37 @@ app.get("/api/stats/most-predicted-winner", (req, res) => {
       }
     });
 
-    // Find the player with most predicted wins
-    let mostPredictedPlayer = null;
-    let maxCount = 0;
+    // Build breakdown array with per-round data
+    const breakdown = roundStats.map((roundData, idx) => {
+      let mostPredictedInRound = null;
+      let maxCountInRound = 0;
 
-    for (const [player, count] of Object.entries(playerWinCounts)) {
-      if (count > maxCount) {
-        maxCount = count;
+      for (const [player, count] of Object.entries(roundData.playerCounts)) {
+        if (count > maxCountInRound) {
+          maxCountInRound = count;
+          mostPredictedInRound = player;
+        }
+      }
+
+      return {
+        round: roundData.roundName,
+        playerName: mostPredictedInRound || "N/A",
+        count: maxCountInRound,
+        totalPlayers: Object.keys(roundData.playerCounts).length,
+        percent:
+          roundData.totalMatches > 0
+            ? Math.round((maxCountInRound / roundData.totalMatches) * 100)
+            : 0,
+      };
+    });
+
+    // Find overall most predicted winner
+    let mostPredictedPlayer = null;
+    let maxOverallCount = 0;
+
+    for (const [player, count] of Object.entries(allPlayerWins)) {
+      if (count > maxOverallCount) {
+        maxOverallCount = count;
         mostPredictedPlayer = player;
       }
     }
@@ -191,8 +238,8 @@ app.get("/api/stats/most-predicted-winner", (req, res) => {
     res.json({
       totalPredictions: predictions.length,
       mostPredictedWinner: mostPredictedPlayer || "No data yet",
-      winCount: maxCount,
-      breakdown: playerWinCounts,
+      winCount: maxOverallCount,
+      breakdown: breakdown,
     });
   } catch (err) {
     console.error("Error calculating stats:", err);

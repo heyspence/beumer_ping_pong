@@ -278,7 +278,7 @@
                         const totalData = await totalRes.json();
                         document.querySelector(
                             ".stats-grid .stat-card:nth-child(1) .value",
-                        ).textContent = totalData.total || "0";
+                        ).textContent = totalData.totalPredictions || "0";
                     }
 
                     // Fetch most predicted winner
@@ -287,15 +287,19 @@
                     );
                     if (winnerRes.ok) {
                         const winnerData = await winnerRes.json();
+
+                        // Update stat card value
                         document.querySelector(
                             ".stats-grid .stat-card:nth-child(3) .value",
-                        ).textContent = winnerData.mostPredictedPlayer || "N/A";
+                        ).textContent =
+                            winnerData.mostPredictedWinner || "No data yet";
 
                         // Update most predicted table with real data
                         const tbody =
                             document.getElementById("mostPredictedBody");
                         if (
                             winnerData.breakdown &&
+                            Array.isArray(winnerData.breakdown) &&
                             winnerData.breakdown.length > 0
                         ) {
                             tbody.innerHTML = "";
@@ -305,11 +309,27 @@
                                     <td>${row.round}</td>
                                     <td><span class="player-name">${row.playerName}</span></td>
                                     <td><span class="win-count">${row.count}</span> predictions</td>
-                                    <td>${row.totalPlayers}</td>
+                                    <td>${row.totalPlayers || "-"}</td>
                                     <td>${row.percent}%</td>
                                 `;
                                 tbody.appendChild(tr);
                             });
+                        } else if (winnerData.totalPredictions > 0) {
+                            // Show overall stats when no round breakdown available
+                            tbody.innerHTML = "";
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `
+                                    <td>Overall</td>
+                                    <td><span class="player-name">${winnerData.mostPredictedWinner}</span></td>
+                                    <td><span class="win-count">${winnerData.winCount}</span> predictions</td>
+                                    <td>-</td>
+                                    <td>${Math.round((winnerData.winCount / winnerData.totalPredictions) * 100)}%</td>
+                                `;
+                            tbody.appendChild(tr);
+                        } else {
+                            // No data yet - show empty state
+                            tbody.innerHTML =
+                                "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
                         }
                     }
                 } catch (err) {
@@ -359,8 +379,12 @@
                 popularMatchupsBody.appendChild(tr);
             });
 
-            // Load real stats on page load
-            window.addEventListener("DOMContentLoaded", loadStats);
+            // Load real stats when DOM is ready, fallback to dummy data if API fails
+            document.addEventListener("DOMContentLoaded", () => {
+                loadStats().catch((err) => {
+                    console.log("API failed, showing dummy data:", err);
+                });
+            });
         </script>
     </body>
 </html>
