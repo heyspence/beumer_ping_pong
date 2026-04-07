@@ -381,8 +381,10 @@
 
                 if (winnerA === "" || winnerB === "") return null;
 
-                // Return player names from previous round winners
-                return [winnerA, winnerB];
+                // Return player names from previous round winners (never "Bye")
+                return [winnerA, winnerB].filter(
+                    (p) => p && String(p).trim() !== "Bye",
+                );
             }
 
             function renderBracket() {
@@ -423,16 +425,18 @@
                                         match.playerA === "Bye"
                                             ? match.playerB
                                             : match.playerA;
-                                    // Auto-select the non-Bye player
+                                    // Only the real player can be selected (no "Bye" option)
                                     optionsHtml += `<option value="${player}" selected>${player}</option>`;
-                                    optionsHtml += `<option value="Bye">Bye</option>`;
                                 } else {
                                     optionsHtml += `<option value="${match.playerA}">${match.playerA}</option>`;
                                     optionsHtml += `<option value="${match.playerB}">${match.playerB}</option>`;
                                 }
                             } else {
                                 options.forEach((playerName) => {
-                                    if (playerName !== "Bye") {
+                                    if (
+                                        playerName &&
+                                        String(playerName).trim() !== "Bye"
+                                    ) {
                                         optionsHtml += `<option value="${playerName}">${playerName}</option>`;
                                     }
                                 });
@@ -464,6 +468,18 @@
                         if (
                             e.target.classList.contains("player-select-field")
                         ) {
+                            if (e.target.value === "Bye") {
+                                const firstReal = Array.from(
+                                    e.target.options,
+                                ).find(
+                                    (opt) =>
+                                        opt.value &&
+                                        opt.value !== "Bye" &&
+                                        opt.value !== "",
+                                );
+                                if (firstReal) e.target.value = firstReal.value;
+                                else e.target.selectedIndex = 0;
+                            }
                             renderBracket();
                         }
                     });
@@ -497,7 +513,8 @@
                     const betType = document.getElementById("betType").value;
 
                     const bracketPredictions = {};
-                    let valid = true;
+                    let missingWinner = false;
+                    let pickedBye = false;
 
                     document
                         .querySelectorAll("[id$='_winner']")
@@ -506,7 +523,11 @@
 
                             const winner = select.value;
                             if (!winner || winner === "") {
-                                valid = false;
+                                missingWinner = true;
+                                return;
+                            }
+                            if (winner === "Bye") {
+                                pickedBye = true;
                                 return;
                             }
 
@@ -515,7 +536,14 @@
                             ] = winner;
                         });
 
-                    if (!valid) {
+                    if (pickedBye) {
+                        showStatus(
+                            "Bye cannot be selected as a winner. Choose the real player in each match.",
+                            "error",
+                        );
+                        return;
+                    }
+                    if (missingWinner) {
                         showStatus(
                             "Please select winners for all active matches!",
                             "error",

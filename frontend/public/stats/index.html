@@ -111,6 +111,96 @@
                 border-radius: 4px;
                 margin-left: 5px;
             }
+
+            .stat-card .hint {
+                font-size: 12px;
+                color: #888;
+                margin-top: 8px;
+                line-height: 1.4;
+            }
+            .section-title {
+                margin-top: 28px;
+            }
+
+            .submission-viewer {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+                margin-top: 32px;
+                margin-bottom: 40px;
+            }
+            .submission-toolbar {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+            .submission-toolbar .counter {
+                font-weight: bold;
+                color: #333;
+                min-width: 140px;
+            }
+            .btn-nav {
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 10px 18px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            }
+            .btn-nav:hover:not(:disabled) {
+                background: #43a047;
+            }
+            .btn-nav:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            .submission-meta {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+                margin-bottom: 20px;
+                padding: 14px;
+                background: #f8f9fa;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+            .submission-meta .meta-label {
+                color: #666;
+                font-size: 12px;
+                text-transform: uppercase;
+                margin-bottom: 4px;
+            }
+            .submission-meta .meta-value {
+                font-weight: 600;
+                color: #222;
+            }
+            .bracket-round-block {
+                margin-bottom: 20px;
+            }
+            .bracket-round-block h4 {
+                color: #667eea;
+                font-size: 15px;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+                border-bottom: 2px solid #e0e0e0;
+            }
+            .bracket-round-block table {
+                margin-bottom: 0;
+                box-shadow: none;
+            }
+            .bracket-round-block th {
+                background: #5c6bc0;
+            }
+            .jump-select {
+                padding: 8px 12px;
+                border-radius: 4px;
+                border: 1px solid #ccc;
+                font-size: 14px;
+            }
         </style>
     </head>
     <body>
@@ -136,6 +226,42 @@
                     <div class="value" style="font-size: 20px">-</div>
                 </div>
             </div>
+
+            <h3 class="section-title">💵 Entries &amp; prize pool</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2>Paid brackets</h2>
+                    <div class="value" id="statPaidBrackets">-</div>
+                    <p class="hint">Submissions with a money entry (e.g. $5)</p>
+                </div>
+                <div class="stat-card">
+                    <h2>Users who bet</h2>
+                    <div class="value" id="statUniquePaidUsers">-</div>
+                    <p class="hint">Unique names with at least one paid bracket</p>
+                </div>
+                <div class="stat-card">
+                    <h2>Fun only (no bet)</h2>
+                    <div class="value" id="statFunOnly">-</div>
+                    <p class="hint">"Submit for Fun" entries</p>
+                </div>
+                <div class="stat-card">
+                    <h2>Total prize pool</h2>
+                    <div class="value" id="statPrizePool" style="font-size: 26px">
+                        -
+                    </div>
+                    <p class="hint">Sum of all paid entry fees collected</p>
+                </div>
+            </div>
+
+            <table id="entryTypeTable">
+                <thead>
+                    <tr>
+                        <th>Entry type</th>
+                        <th>Bracket submissions</th>
+                    </tr>
+                </thead>
+                <tbody id="entryTypeBody"></tbody>
+            </table>
 
             <h3>🏆 Most Predicted Winners (By Round)</h3>
             <table id="mostPredictedTable">
@@ -181,6 +307,51 @@
                     <!-- Data will be populated below -->
                 </tbody>
             </table>
+
+            <div class="submission-viewer" id="submissionViewer">
+                <h3 class="section-title" style="margin-top: 0">
+                    👀 Browse submissions
+                </h3>
+                <p style="color: #666; margin-bottom: 16px; font-size: 14px">
+                    Step through each saved bracket to see what people picked.
+                </p>
+                <div class="submission-toolbar">
+                    <button type="button" class="btn-nav" id="subPrev">
+                        ← Previous
+                    </button>
+                    <button type="button" class="btn-nav" id="subNext">
+                        Next →
+                    </button>
+                    <span class="counter" id="subCounter">—</span>
+                    <label style="display: flex; align-items: center; gap: 8px">
+                        <span style="font-size: 14px; color: #666">Jump to</span>
+                        <select
+                            class="jump-select"
+                            id="subJump"
+                            aria-label="Jump to submission"
+                        >
+                            <option value="">—</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="submission-meta" id="subMeta">
+                    <div>
+                        <div class="meta-label">Name</div>
+                        <div class="meta-value" id="subName">—</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Entry</div>
+                        <div class="meta-value" id="subEntry">—</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Submitted</div>
+                        <div class="meta-value" id="subTime">—</div>
+                    </div>
+                </div>
+                <div id="subBracketArea">
+                    <p style="color: #666">Loading…</p>
+                </div>
+            </div>
         </div>
 
         <script>
@@ -188,6 +359,193 @@
                 document.querySelector(
                     `.stats-grid .stat-card:nth-child(${cardIndex1Based}) .value`,
                 ).textContent = value;
+            }
+
+            function shouldHideRound(roundName) {
+                const r = String(roundName || "")
+                    .trim()
+                    .toLowerCase();
+                return r === "round of 32" || r === "round of 16";
+            }
+
+            function escapeHtml(s) {
+                if (s == null) return "";
+                return String(s)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+            }
+
+            const ROUND_LABELS = {
+                r1: "Round of 32",
+                r2: "Round of 16",
+                r3: "Quarterfinals",
+                r4: "Semifinals",
+                r5: "Finals",
+            };
+
+            function normalizeBracketToFlat(bracket) {
+                if (!bracket || typeof bracket !== "object") return {};
+                if (bracket.rounds && Array.isArray(bracket.rounds)) {
+                    const flat = {};
+                    bracket.rounds.forEach((round) => {
+                        (round.matches || []).forEach((m) => {
+                            if (m && m.id && m.winner) flat[m.id] = m.winner;
+                        });
+                    });
+                    return flat;
+                }
+                return bracket;
+            }
+
+            function formatBetTypeLabel(betType) {
+                const t = String(betType || "").trim();
+                if (t === "" || t === "fun") {
+                    return "Submit for Fun (no bet)";
+                }
+                return t;
+            }
+
+            function formatBracketHtml(flat) {
+                const groups = {};
+                for (const [matchId, winner] of Object.entries(flat)) {
+                    const m = String(matchId).match(/^(r\d+)_m(\d+)$/);
+                    if (!m) continue;
+                    const prefix = m[1];
+                    if (!groups[prefix]) groups[prefix] = [];
+                    groups[prefix].push({ matchId, winner });
+                }
+                const order = ["r1", "r2", "r3", "r4", "r5"];
+                let html = "";
+                for (const prefix of order) {
+                    const rows = groups[prefix];
+                    if (!rows || !rows.length) continue;
+                    rows.sort((a, b) => {
+                        const na = parseInt(
+                            String(a.matchId).match(/_m(\d+)$/)?.[1] || "0",
+                            10,
+                        );
+                        const nb = parseInt(
+                            String(b.matchId).match(/_m(\d+)$/)?.[1] || "0",
+                            10,
+                        );
+                        return na - nb;
+                    });
+                    const title = ROUND_LABELS[prefix] || prefix;
+                    html += `<div class="bracket-round-block"><h4>${escapeHtml(title)}</h4>`;
+                    html +=
+                        '<table><thead><tr><th>Match</th><th>Predicted winner</th></tr></thead><tbody>';
+                    for (const row of rows) {
+                        html += `<tr><td>${escapeHtml(row.matchId)}</td><td><span class="player-name">${escapeHtml(row.winner)}</span></td></tr>`;
+                    }
+                    html += "</tbody></table></div>";
+                }
+                const stray = Object.entries(flat).filter(
+                    ([k]) => !/^r\d+_m\d+$/.test(k),
+                );
+                if (stray.length) {
+                    html +=
+                        '<div class="bracket-round-block"><h4>Other picks</h4><table><thead><tr><th>Key</th><th>Winner</th></tr></thead><tbody>';
+                    stray
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .forEach(([k, v]) => {
+                            html += `<tr><td>${escapeHtml(k)}</td><td><span class="player-name">${escapeHtml(v)}</span></td></tr>`;
+                        });
+                    html += "</tbody></table></div>";
+                }
+                return (
+                    html ||
+                    '<p style="color:#666">No bracket picks saved for this submission.</p>'
+                );
+            }
+
+            let submissionsList = [];
+            let submissionIndex = 0;
+
+            function renderCurrentSubmission() {
+                const area = document.getElementById("subBracketArea");
+                const prevBtn = document.getElementById("subPrev");
+                const nextBtn = document.getElementById("subNext");
+                const counter = document.getElementById("subCounter");
+                const jump = document.getElementById("subJump");
+
+                if (!submissionsList.length) {
+                    area.innerHTML =
+                        '<p style="color:#666">No submissions yet.</p>';
+                    counter.textContent = "0 / 0";
+                    prevBtn.disabled = true;
+                    nextBtn.disabled = true;
+                    document.getElementById("subName").textContent = "—";
+                    document.getElementById("subEntry").textContent = "—";
+                    document.getElementById("subTime").textContent = "—";
+                    jump.innerHTML = '<option value="">—</option>';
+                    return;
+                }
+
+                const p = submissionsList[submissionIndex];
+                const flat = normalizeBracketToFlat(p.bracket);
+                area.innerHTML = formatBracketHtml(flat);
+
+                counter.textContent = `${submissionIndex + 1} / ${submissionsList.length}`;
+                const t = p.timestamp
+                    ? new Date(p.timestamp).toLocaleString()
+                    : "—";
+                document.getElementById("subName").textContent =
+                    p.playerName || "—";
+                document.getElementById("subEntry").textContent =
+                    formatBetTypeLabel(p.betType);
+                document.getElementById("subTime").textContent = t;
+
+                prevBtn.disabled = submissionIndex <= 0;
+                nextBtn.disabled =
+                    submissionIndex >= submissionsList.length - 1;
+
+                jump.value = String(submissionIndex);
+            }
+
+            async function loadSubmissionViewer() {
+                const area = document.getElementById("subBracketArea");
+                const jump = document.getElementById("subJump");
+                try {
+                    const res = await fetch("/api/predictions");
+                    if (!res.ok) throw new Error("bad status");
+                    const data = await res.json();
+                    submissionsList = Array.isArray(data) ? data : [];
+                    submissionsList.sort((a, b) => {
+                        const ta = new Date(a.timestamp || 0).getTime();
+                        const tb = new Date(b.timestamp || 0).getTime();
+                        return tb - ta;
+                    });
+                    submissionIndex = 0;
+
+                    jump.innerHTML = "";
+                    submissionsList.forEach((sub, i) => {
+                        const opt = document.createElement("option");
+                        opt.value = String(i);
+                        const name = sub.playerName || "Unknown";
+                        const short =
+                            name.length > 48 ? `${name.slice(0, 47)}…` : name;
+                        opt.textContent = `${i + 1}. ${short}`;
+                        jump.appendChild(opt);
+                    });
+                    if (submissionsList.length === 0) {
+                        jump.innerHTML = '<option value="">—</option>';
+                    }
+
+                    renderCurrentSubmission();
+                } catch (e) {
+                    submissionsList = [];
+                    area.innerHTML =
+                        '<p style="color:#666">Could not load submissions (backend offline?).</p>';
+                    document.getElementById("subCounter").textContent = "—";
+                    document.getElementById("subName").textContent = "—";
+                    document.getElementById("subEntry").textContent = "—";
+                    document.getElementById("subTime").textContent = "—";
+                    document.getElementById("subPrev").disabled = true;
+                    document.getElementById("subNext").disabled = true;
+                    jump.innerHTML = '<option value="">—</option>';
+                }
             }
 
             // Fetch and populate stats from backend API
@@ -207,6 +565,55 @@
                     if (uniqueRes.ok) {
                         const uniqueData = await uniqueRes.json();
                         setCardValue(2, uniqueData.uniquePlayers ?? "0");
+                    }
+
+                    const poolRes = await fetch("/api/stats/entry-pool");
+                    if (poolRes.ok) {
+                        const pool = await poolRes.json();
+                        document.getElementById("statPaidBrackets").textContent =
+                            String(pool.paidBracketCount ?? "0");
+                        document.getElementById(
+                            "statUniquePaidUsers",
+                        ).textContent = String(
+                            pool.uniqueUsersWithPaidBet ?? "0",
+                        );
+                        document.getElementById("statFunOnly").textContent =
+                            String(pool.funBracketCount ?? "0");
+                        const usd = Number(pool.totalPrizePoolUSD) || 0;
+                        document.getElementById("statPrizePool").textContent =
+                            usd.toLocaleString("en-US", {
+                                style: "currency",
+                                currency: "USD",
+                            });
+
+                        const tbody = document.getElementById("entryTypeBody");
+                        tbody.innerHTML = "";
+                        const entries = Object.entries(pool.byBetType || {});
+                        entries.sort((a, b) => {
+                            const order = (k) =>
+                                k === "fun"
+                                    ? 0
+                                    : k.startsWith("$")
+                                      ? 1
+                                      : 2;
+                            const d = order(a[0]) - order(b[0]);
+                            if (d !== 0) return d;
+                            return a[0].localeCompare(b[0]);
+                        });
+                        if (entries.length === 0) {
+                            tbody.innerHTML =
+                                "<tr><td colspan='2'>No data yet</td></tr>";
+                        } else {
+                            entries.forEach(([type, count]) => {
+                                const label =
+                                    type === "fun"
+                                        ? "Submit for Fun (no bet)"
+                                        : type;
+                                const tr = document.createElement("tr");
+                                tr.innerHTML = `<td>${label}</td><td>${count}</td>`;
+                                tbody.appendChild(tr);
+                            });
+                        }
                     }
 
                     // Fetch most predicted winner
@@ -231,7 +638,9 @@
                             winnerData.breakdown.length > 0
                         ) {
                             tbody.innerHTML = "";
-                            winnerData.breakdown.forEach((row) => {
+                            winnerData.breakdown
+                                .filter((row) => !shouldHideRound(row.round))
+                                .forEach((row) => {
                                 const tr = document.createElement("tr");
                                 tr.innerHTML = `
                                     <td>${row.round}</td>
@@ -242,6 +651,11 @@
                                 `;
                                 tbody.appendChild(tr);
                             });
+
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML =
+                                    "<tr><td colspan='5'>No stats for these rounds</td></tr>";
+                            }
                         } else if (winnerData.totalPredictions > 0) {
                             // Show overall stats when no round breakdown available
                             tbody.innerHTML = "";
@@ -272,7 +686,9 @@
                             Array.isArray(upsetData.upsetAlerts) &&
                             upsetData.upsetAlerts.length > 0
                         ) {
-                            upsetData.upsetAlerts.forEach((row) => {
+                            upsetData.upsetAlerts
+                                .filter((row) => !shouldHideRound(row.round))
+                                .forEach((row) => {
                                 const tr = document.createElement("tr");
                                 tr.innerHTML = `
                                     <td>${row.round}</td>
@@ -282,6 +698,11 @@
                                 `;
                                 tbody.appendChild(tr);
                             });
+
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML =
+                                    "<tr><td colspan='4'>No stats for these rounds</td></tr>";
+                            }
                         } else {
                             tbody.innerHTML =
                                 "<tr><td colspan='4'>No predictions submitted yet</td></tr>";
@@ -302,7 +723,9 @@
                             Array.isArray(matchupsData.popularMatchups) &&
                             matchupsData.popularMatchups.length > 0
                         ) {
-                            matchupsData.popularMatchups.forEach((row) => {
+                            matchupsData.popularMatchups
+                                .filter((row) => !shouldHideRound(row.round))
+                                .forEach((row) => {
                                 const tr = document.createElement("tr");
                                 tr.innerHTML = `
                                     <td>${row.round}</td>
@@ -311,6 +734,11 @@
                                 `;
                                 tbody.appendChild(tr);
                             });
+
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML =
+                                    "<tr><td colspan='3'>No stats for these rounds</td></tr>";
+                            }
                         } else {
                             tbody.innerHTML =
                                 "<tr><td colspan='3'>No predictions submitted yet</td></tr>";
@@ -321,19 +749,64 @@
                     setCardValue(1, "-");
                     setCardValue(2, "-");
                     setCardValue(3, "Backend offline");
+                    document.getElementById("statPaidBrackets").textContent =
+                        "-";
+                    document.getElementById("statUniquePaidUsers").textContent =
+                        "-";
+                    document.getElementById("statFunOnly").textContent = "-";
+                    document.getElementById("statPrizePool").textContent = "-";
+                    document.getElementById("entryTypeBody").innerHTML =
+                        "<tr><td colspan='2'>Backend offline</td></tr>";
                     document.getElementById("mostPredictedBody").innerHTML =
                         "<tr><td colspan='5'>Backend offline</td></tr>";
                     document.getElementById("upsetAlertBody").innerHTML =
                         "<tr><td colspan='4'>Backend offline</td></tr>";
                     document.getElementById("popularMatchupsBody").innerHTML =
                         "<tr><td colspan='3'>Backend offline</td></tr>";
+                    document.getElementById("subBracketArea").innerHTML =
+                        '<p style="color:#666">Could not load submissions (backend offline?).</p>';
+                    document.getElementById("subCounter").textContent = "—";
+                    document.getElementById("subName").textContent = "—";
+                    document.getElementById("subEntry").textContent = "—";
+                    document.getElementById("subTime").textContent = "—";
+                    document.getElementById("subPrev").disabled = true;
+                    document.getElementById("subNext").disabled = true;
+                    document.getElementById("subJump").innerHTML =
+                        '<option value="">—</option>';
                 }
             }
 
             // Load real stats when DOM is ready, fallback to dummy data if API fails
             document.addEventListener("DOMContentLoaded", () => {
+                document.getElementById("subPrev").addEventListener("click", () => {
+                    if (submissionIndex > 0) {
+                        submissionIndex--;
+                        renderCurrentSubmission();
+                    }
+                });
+                document.getElementById("subNext").addEventListener("click", () => {
+                    if (submissionIndex < submissionsList.length - 1) {
+                        submissionIndex++;
+                        renderCurrentSubmission();
+                    }
+                });
+                document
+                    .getElementById("subJump")
+                    .addEventListener("change", (e) => {
+                        const v = e.target.value;
+                        if (v === "") return;
+                        const i = parseInt(v, 10);
+                        if (!Number.isNaN(i)) {
+                            submissionIndex = i;
+                            renderCurrentSubmission();
+                        }
+                    });
+
                 loadStats().catch((err) => {
                     console.log("API failed:", err);
+                });
+                loadSubmissionViewer().catch((err) => {
+                    console.log("Submissions viewer failed:", err);
                 });
             });
         </script>

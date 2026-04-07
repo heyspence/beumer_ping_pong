@@ -288,6 +288,59 @@ app.get("/api/stats/unique-players", (req, res) => {
   }
 });
 
+function parseBetAmountUSD(betType) {
+  if (betType === undefined || betType === null) return 0;
+  const s = String(betType).trim();
+  if (s === "" || s.toLowerCase() === "fun") return 0;
+  const m = s.match(/\$(\d+(?:\.\d+)?)/);
+  if (m) return Number(m[1]);
+  return 0;
+}
+
+// Paid brackets, prize pool, and counts by entry type (betType)
+app.get("/api/stats/entry-pool", (req, res) => {
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+
+    const byBetType = {};
+    let paidBracketCount = 0;
+    let funBracketCount = 0;
+    let totalPrizePoolUSD = 0;
+    const uniquePaidPlayers = new Set();
+
+    predictions.forEach((p) => {
+      const raw =
+        typeof p.betType === "string" ? p.betType.trim() : "";
+      const label = raw === "" ? "fun" : raw;
+      byBetType[label] = (byBetType[label] || 0) + 1;
+
+      const dollars = parseBetAmountUSD(p.betType);
+      if (dollars > 0) {
+        paidBracketCount += 1;
+        totalPrizePoolUSD += dollars;
+        if (typeof p.playerName === "string" && p.playerName.trim()) {
+          uniquePaidPlayers.add(p.playerName.trim().toLowerCase());
+        }
+      } else {
+        funBracketCount += 1;
+      }
+    });
+
+    res.json({
+      totalPredictions: predictions.length,
+      paidBracketCount,
+      funBracketCount,
+      uniqueUsersWithPaidBet: uniquePaidPlayers.size,
+      totalPrizePoolUSD,
+      byBetType,
+    });
+  } catch (err) {
+    console.error("Error calculating entry pool:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // Get most predicted winner across all rounds with breakdown
 app.get("/api/stats/most-predicted-winner", (req, res) => {
   try {
