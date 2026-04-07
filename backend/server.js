@@ -40,6 +40,33 @@ function parseBetAmountUSD(betType) {
   return 0;
 }
 
+function readPredictionsSafe() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) {
+      return [];
+    }
+    const raw = fs.readFileSync(DATA_FILE, "utf8");
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
+      return [];
+    }
+    const data = JSON.parse(trimmed);
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error(
+      "Corrupt predictions file; resetting to []:",
+      err.message,
+    );
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
+    } catch (writeErr) {
+      console.error("Could not repair predictions file:", writeErr);
+    }
+    return [];
+  }
+}
+
 // Get all players (from tournament data file)
 app.get("/api/players", (req, res) => {
   try {
@@ -66,14 +93,7 @@ app.post("/api/predictions", (req, res) => {
       .json({ error: "Player name, bet type and bracket required" });
   }
 
-  let predictions = [];
-  try {
-    const data = fs.readFileSync(DATA_FILE);
-    predictions = JSON.parse(data);
-  } catch (err) {
-    console.error("Error reading predictions:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
+  const predictions = readPredictionsSafe();
 
   // Check if player already has a prediction (by matching name and bracket)
   const { playerId: submittedPlayerId } = req.body;
@@ -155,8 +175,7 @@ app.get("/api/player-entry-slots", (req, res) => {
         .status(400)
         .json({ error: "Query parameter playerName (or name) is required" });
     }
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
     const mine = predictions.filter(
       (p) => normalizePlayerName(p.playerName) === nameKey,
     );
@@ -189,8 +208,7 @@ app.get("/api/player-entry-slots", (req, res) => {
 // Get all predictions
 app.get("/api/predictions", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
     res.json(predictions);
   } catch (err) {
     console.error("Error reading predictions:", err);
@@ -201,8 +219,7 @@ app.get("/api/predictions", (req, res) => {
 // Get prediction by player ID
 app.get("/api/predictions/:playerId", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
     const prediction = predictions.find(
       (p) => p.id === req.params.playerId,
     );
@@ -345,8 +362,7 @@ app.get("/api/bracket-structure", (req, res) => {
 // Get total predictions count
 app.get("/api/stats/total-predictions", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
     res.json({ totalPredictions: predictions.length });
   } catch (err) {
     console.error("Error reading predictions:", err);
@@ -357,8 +373,7 @@ app.get("/api/stats/total-predictions", (req, res) => {
 // Get unique players count
 app.get("/api/stats/unique-players", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
 
     const unique = new Set(
       predictions
@@ -377,8 +392,7 @@ app.get("/api/stats/unique-players", (req, res) => {
 // Paid brackets, prize pool, and counts by entry type (betType)
 app.get("/api/stats/entry-pool", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
 
     const byBetType = {};
     let paidBracketCount = 0;
@@ -421,8 +435,7 @@ app.get("/api/stats/entry-pool", (req, res) => {
 // Get most predicted winner across all rounds with breakdown
 app.get("/api/stats/most-predicted-winner", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
 
     if (predictions.length === 0) {
       return res.json({
@@ -517,8 +530,7 @@ app.get("/api/stats/most-predicted-winner", (req, res) => {
 // Get upset alerts - least predicted winners by round
 app.get("/api/stats/upset-alerts", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
 
     if (predictions.length === 0) {
       return res.json({
@@ -599,8 +611,7 @@ app.get("/api/stats/upset-alerts", (req, res) => {
 // Get popular matchups - most discussed matches by round
 app.get("/api/stats/popular-matchups", (req, res) => {
   try {
-    const data = fs.readFileSync(DATA_FILE);
-    const predictions = JSON.parse(data);
+    const predictions = readPredictionsSafe();
 
     if (predictions.length === 0) {
       return res.json({
