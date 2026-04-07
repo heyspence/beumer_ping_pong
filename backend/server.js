@@ -138,6 +138,68 @@ app.get("/api/bracket-structure", (req, res) => {
   res.json(structure);
 });
 
+// Get total predictions count
+app.get("/api/stats/total-predictions", (req, res) => {
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+    res.json({ totalPredictions: predictions.length });
+  } catch (err) {
+    console.error("Error reading predictions:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get most predicted winner across all rounds
+app.get("/api/stats/most-predicted-winner", (req, res) => {
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+
+    // Count how many times each player is predicted to win each match
+    const playerWinCounts = {};
+
+    predictions.forEach((prediction) => {
+      const bracket = prediction.bracket;
+
+      // Loop through all rounds and matches in the bracket
+      if (bracket.rounds && Array.isArray(bracket.rounds)) {
+        bracket.rounds.forEach((round) => {
+          if (round.matches && Array.isArray(round.matches)) {
+            round.matches.forEach((match) => {
+              const winner = match.winner;
+              if (winner && !match.isBye) {
+                playerWinCounts[winner] = (playerWinCounts[winner] || 0) + 1;
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Find the player with most predicted wins
+    let mostPredictedPlayer = null;
+    let maxCount = 0;
+
+    for (const [player, count] of Object.entries(playerWinCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostPredictedPlayer = player;
+      }
+    }
+
+    res.json({
+      totalPredictions: predictions.length,
+      mostPredictedWinner: mostPredictedPlayer || "No data yet",
+      winCount: maxCount,
+      breakdown: playerWinCounts,
+    });
+  } catch (err) {
+    console.error("Error calculating stats:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 function generateBracketStructure() {
   // 36 players: 16 first round matches + 20 byes to round of 16
   return {

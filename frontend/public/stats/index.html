@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Tournament Statistics</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                background: #f5f5f5;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            h1 {
+                text-align: center;
+                margin-bottom: 30px;
+                color: #333;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }
+            .stat-card {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .stat-card h2 {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+            }
+            .stat-card .value {
+                font-size: 32px;
+                font-weight: bold;
+                color: #333;
+            }
+
+            table {
+                width: 100%;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                margin-bottom: 20px;
+            }
+            th,
+            td {
+                padding: 12px 15px;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+            }
+            th {
+                background: #4caf50;
+                color: white;
+                font-weight: bold;
+            }
+            tr:hover {
+                background: #f5f5f5;
+            }
+
+            .leaderboard-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .btn-back {
+                background: #666;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+            }
+            .btn-back:hover {
+                background: #555;
+            }
+
+            h3 {
+                margin-bottom: 15px;
+                color: #333;
+            }
+
+            .player-name {
+                font-weight: bold;
+                color: #4caf50;
+            }
+            .win-count {
+                color: #28a745;
+                font-weight: bold;
+            }
+            .prediction-count {
+                background: #e3f2fd;
+                padding: 2px 6px;
+                border-radius: 4px;
+                margin-left: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Tournament Statistics</h1>
+
+            <div class="leaderboard-header">
+                <h2>Tournament Overview</h2>
+                <a href="../index.html" class="btn-back">Back to Bracket</a>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2>Total Predictions</h2>
+                    <div class="value">847</div>
+                </div>
+                <div class="stat-card">
+                    <h2>Unique Players</h2>
+                    <div class="value">623</div>
+                </div>
+                <div class="stat-card">
+                    <h2>Most Predicted Winner</h2>
+                    <div class="value" style="font-size: 20px">John Smith</div>
+                </div>
+            </div>
+
+            <h3>🏆 Most Predicted Winners (By Round)</h3>
+            <table id="mostPredictedTable">
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Player Name</th>
+                        <th>Predictions Count</th>
+                        <th>Total Players</th>
+                        <th>% of Predictions</th>
+                    </tr>
+                </thead>
+                <tbody id="mostPredictedBody">
+                    <!-- Data will be populated below -->
+                </tbody>
+            </table>
+
+            <h3>📊 Upset Alerts (Least Predicted Winners)</h3>
+            <table id="upsetAlertTable">
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Player Name</th>
+                        <th>Predictions Count</th>
+                        <th>% of Predictions</th>
+                    </tr>
+                </thead>
+                <tbody id="upsetAlertBody">
+                    <!-- Data will be populated below -->
+                </tbody>
+            </table>
+
+            <h3>🔥 Popular Matchups (Most Discussed)</h3>
+            <table id="popularMatchupsTable">
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Matchup</th>
+                        <th>Predictions Count</th>
+                    </tr>
+                </thead>
+                <tbody id="popularMatchupsBody">
+                    <!-- Data will be populated below -->
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            // Dummy data - Most Predicted Winners by Round (Round of 32)
+            const mostPredictedData = [
+                {
+                    round: "Round of 32",
+                    player: "John Smith",
+                    count: 542,
+                    total: 847,
+                    percent: 63.9,
+                },
+                {
+                    round: "Round of 16",
+                    player: "Sarah Johnson",
+                    count: 489,
+                    total: 847,
+                    percent: 57.7,
+                },
+                {
+                    round: "Quarterfinals",
+                    player: "Mike Chen",
+                    count: 423,
+                    total: 847,
+                    percent: 49.9,
+                },
+                {
+                    round: "Semifinals",
+                    player: "Emily Davis",
+                    count: 312,
+                    total: 847,
+                    percent: 36.8,
+                },
+                {
+                    round: "Finals",
+                    player: "David Wilson",
+                    count: 267,
+                    total: 847,
+                    percent: 31.5,
+                },
+            ];
+
+            // Dummy data - Upset Alerts (least predicted to win)
+            const upsetAlertData = [
+                {
+                    round: "Round of 32",
+                    player: "Alex Martinez",
+                    count: 89,
+                    total: 847,
+                    percent: 10.5,
+                },
+                {
+                    round: "Round of 16",
+                    player: "Rachel Kim",
+                    count: 67,
+                    total: 847,
+                    percent: 7.9,
+                },
+                {
+                    round: "Quarterfinals",
+                    player: "Tom Brown",
+                    count: 45,
+                    total: 847,
+                    percent: 5.3,
+                },
+            ];
+
+            // Dummy data - Popular Matchups
+            const popularMatchupData = [
+                {
+                    round: "Round of 32",
+                    matchup: "John Smith vs Mike Chen",
+                    count: 712,
+                },
+                {
+                    round: "Round of 32",
+                    matchup: "Sarah Johnson vs Emily Davis",
+                    count: 689,
+                },
+                {
+                    round: "Quarterfinals",
+                    matchup: "David Wilson vs Alex Martinez",
+                    count: 534,
+                },
+            ];
+
+            // Populate Most Predicted Table
+            const mostPredictedBody =
+                document.getElementById("mostPredictedBody");
+            mostPredictedData.forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+        <td>${row.round}</td>
+        <td><span class="player-name">${row.player}</span></td>
+        <td><span class="win-count">${row.count}</span> predictions</td>
+        <td>${row.total}</td>
+        <td>${row.percent}%</td>
+      `;
+                mostPredictedBody.appendChild(tr);
+            });
+
+            // Populate Upset Alerts Table
+            const upsetAlertBody = document.getElementById("upsetAlertBody");
+            upsetAlertData.forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+        <td>${row.round}</td>
+        <td><span class="player-name">${row.player}</span></td>
+        <td><span style="color: #dc3545;">${row.count} predictions</span></td>
+        <td>${row.percent}%</td>
+      `;
+                upsetAlertBody.appendChild(tr);
+            });
+
+            // Populate Popular Matchups Table
+            const popularMatchupsBody = document.getElementById(
+                "popularMatchupsBody",
+            );
+            popularMatchupData.forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+        <td>${row.round}</td>
+        <td><strong>${row.matchup}</strong></td>
+        <td>${row.count} predictions</td>
+      `;
+                popularMatchupsBody.appendChild(tr);
+            });
+        </script>
+    </body>
+</html>
