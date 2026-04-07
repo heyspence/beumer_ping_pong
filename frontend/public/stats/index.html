@@ -125,15 +125,15 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <h2>Total Predictions</h2>
-                    <div class="value">847</div>
+                    <div class="value">-</div>
                 </div>
                 <div class="stat-card">
                     <h2>Unique Players</h2>
-                    <div class="value">623</div>
+                    <div class="value">-</div>
                 </div>
                 <div class="stat-card">
                     <h2>Most Predicted Winner</h2>
-                    <div class="value" style="font-size: 20px">John Smith</div>
+                    <div class="value" style="font-size: 20px">-</div>
                 </div>
             </div>
 
@@ -184,88 +184,11 @@
         </div>
 
         <script>
-            // Dummy data - Most Predicted Winners by Round (Round of 32)
-            const mostPredictedData = [
-                {
-                    round: "Round of 32",
-                    player: "John Smith",
-                    count: 542,
-                    total: 847,
-                    percent: 63.9,
-                },
-                {
-                    round: "Round of 16",
-                    player: "Sarah Johnson",
-                    count: 489,
-                    total: 847,
-                    percent: 57.7,
-                },
-                {
-                    round: "Quarterfinals",
-                    player: "Mike Chen",
-                    count: 423,
-                    total: 847,
-                    percent: 49.9,
-                },
-                {
-                    round: "Semifinals",
-                    player: "Emily Davis",
-                    count: 312,
-                    total: 847,
-                    percent: 36.8,
-                },
-                {
-                    round: "Finals",
-                    player: "David Wilson",
-                    count: 267,
-                    total: 847,
-                    percent: 31.5,
-                },
-            ];
-
-            // Dummy data - Upset Alerts (least predicted to win)
-            const upsetAlertData = [
-                {
-                    round: "Round of 32",
-                    player: "Alex Martinez",
-                    count: 89,
-                    total: 847,
-                    percent: 10.5,
-                },
-                {
-                    round: "Round of 16",
-                    player: "Rachel Kim",
-                    count: 67,
-                    total: 847,
-                    percent: 7.9,
-                },
-                {
-                    round: "Quarterfinals",
-                    player: "Tom Brown",
-                    count: 45,
-                    total: 847,
-                    percent: 5.3,
-                },
-            ];
-
-            // Dummy data - Popular Matchups
-            const popularMatchupData = [
-                {
-                    round: "Round of 32",
-                    matchup: "John Smith vs Mike Chen",
-                    count: 712,
-                },
-                {
-                    round: "Round of 32",
-                    matchup: "Sarah Johnson vs Emily Davis",
-                    count: 689,
-                },
-                {
-                    round: "Quarterfinals",
-                    matchup: "David Wilson vs Alex Martinez",
-                    count: 534,
-                },
-            ];
+            function setCardValue(cardIndex1Based, value) {
+                document.querySelector(
+                    `.stats-grid .stat-card:nth-child(${cardIndex1Based}) .value`,
+                ).textContent = value;
+            }
 
             // Fetch and populate stats from backend API
             async function loadStats() {
@@ -276,9 +199,14 @@
                     );
                     if (totalRes.ok) {
                         const totalData = await totalRes.json();
-                        document.querySelector(
-                            ".stats-grid .stat-card:nth-child(1) .value",
-                        ).textContent = totalData.totalPredictions || "0";
+                        setCardValue(1, totalData.totalPredictions ?? "0");
+                    }
+
+                    // Fetch unique players
+                    const uniqueRes = await fetch("/api/stats/unique-players");
+                    if (uniqueRes.ok) {
+                        const uniqueData = await uniqueRes.json();
+                        setCardValue(2, uniqueData.uniquePlayers ?? "0");
                     }
 
                     // Fetch most predicted winner
@@ -289,10 +217,10 @@
                         const winnerData = await winnerRes.json();
 
                         // Update stat card value
-                        document.querySelector(
-                            ".stats-grid .stat-card:nth-child(3) .value",
-                        ).textContent =
-                            winnerData.mostPredictedWinner || "No data yet";
+                        setCardValue(
+                            3,
+                            winnerData.mostPredictedWinner || "No data yet",
+                        );
 
                         // Update most predicted table with real data
                         const tbody =
@@ -332,57 +260,80 @@
                                 "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
                         }
                     }
+
+                    // Fetch upset alerts
+                    const upsetRes = await fetch("/api/stats/upset-alerts");
+                    if (upsetRes.ok) {
+                        const upsetData = await upsetRes.json();
+                        const tbody = document.getElementById("upsetAlertBody");
+                        tbody.innerHTML = "";
+                        if (
+                            upsetData.upsetAlerts &&
+                            Array.isArray(upsetData.upsetAlerts) &&
+                            upsetData.upsetAlerts.length > 0
+                        ) {
+                            upsetData.upsetAlerts.forEach((row) => {
+                                const tr = document.createElement("tr");
+                                tr.innerHTML = `
+                                    <td>${row.round}</td>
+                                    <td><span class="player-name">${row.playerName}</span></td>
+                                    <td><span style="color: #dc3545;">${row.count} predictions</span></td>
+                                    <td>${row.percent}%</td>
+                                `;
+                                tbody.appendChild(tr);
+                            });
+                        } else {
+                            tbody.innerHTML =
+                                "<tr><td colspan='4'>No predictions submitted yet</td></tr>";
+                        }
+                    }
+
+                    // Fetch popular matchups
+                    const matchupsRes = await fetch(
+                        "/api/stats/popular-matchups",
+                    );
+                    if (matchupsRes.ok) {
+                        const matchupsData = await matchupsRes.json();
+                        const tbody =
+                            document.getElementById("popularMatchupsBody");
+                        tbody.innerHTML = "";
+                        if (
+                            matchupsData.popularMatchups &&
+                            Array.isArray(matchupsData.popularMatchups) &&
+                            matchupsData.popularMatchups.length > 0
+                        ) {
+                            matchupsData.popularMatchups.forEach((row) => {
+                                const tr = document.createElement("tr");
+                                tr.innerHTML = `
+                                    <td>${row.round}</td>
+                                    <td><strong>${row.matchup}</strong></td>
+                                    <td>${row.count} predictions</td>
+                                `;
+                                tbody.appendChild(tr);
+                            });
+                        } else {
+                            tbody.innerHTML =
+                                "<tr><td colspan='3'>No predictions submitted yet</td></tr>";
+                        }
+                    }
                 } catch (err) {
-                    console.log("Using dummy data - API not available:", err);
+                    // API not available; show empty state rather than misleading dummy numbers
+                    setCardValue(1, "-");
+                    setCardValue(2, "-");
+                    setCardValue(3, "Backend offline");
+                    document.getElementById("mostPredictedBody").innerHTML =
+                        "<tr><td colspan='5'>Backend offline</td></tr>";
+                    document.getElementById("upsetAlertBody").innerHTML =
+                        "<tr><td colspan='4'>Backend offline</td></tr>";
+                    document.getElementById("popularMatchupsBody").innerHTML =
+                        "<tr><td colspan='3'>Backend offline</td></tr>";
                 }
             }
-
-            // Populate Most Predicted Table
-            const mostPredictedBody =
-                document.getElementById("mostPredictedBody");
-            mostPredictedData.forEach((row) => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row.round}</td>
-                    <td><span class="player-name">${row.player}</span></td>
-                    <td><span class="win-count">${row.count}</span> predictions</td>
-                    <td>${row.total}</td>
-                    <td>${row.percent}%</td>
-                `;
-                mostPredictedBody.appendChild(tr);
-            });
-
-            // Populate Upset Alerts Table
-            const upsetAlertBody = document.getElementById("upsetAlertBody");
-            upsetAlertData.forEach((row) => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row.round}</td>
-                    <td><span class="player-name">${row.player}</span></td>
-                    <td><span style="color: #dc3545;">${row.count} predictions</span></td>
-                    <td>${row.percent}%</td>
-                `;
-                upsetAlertBody.appendChild(tr);
-            });
-
-            // Populate Popular Matchups Table
-            const popularMatchupsBody = document.getElementById(
-                "popularMatchupsBody",
-            );
-            popularMatchupData.forEach((row) => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row.round}</td>
-                    <td><strong>${row.matchup}</strong></td>
-                    <td>${row.count} predictions</td>
-                `;
-                popularMatchupsBody.appendChild(tr);
-            });
 
             // Load real stats when DOM is ready, fallback to dummy data if API fails
             document.addEventListener("DOMContentLoaded", () => {
                 loadStats().catch((err) => {
-                    console.log("API failed, showing dummy data:", err);
+                    console.log("API failed:", err);
                 });
             });
         </script>

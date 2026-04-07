@@ -118,7 +118,7 @@ app.get("/api/predictions/:playerId", (req, res) => {
     const data = fs.readFileSync(DATA_FILE);
     const predictions = JSON.parse(data);
     const prediction = predictions.find(
-      (p) => p.playerId === req.params.playerId,
+      (p) => p.id === req.params.playerId,
     );
 
     if (!prediction) {
@@ -132,6 +132,124 @@ app.get("/api/predictions/:playerId", (req, res) => {
   }
 });
 
+function getTournamentPlayers() {
+  const dataPath = path.join(__dirname, "data", "tournament_players.json");
+  if (!fs.existsSync(dataPath)) {
+    return Array.from({ length: 36 }, (_, i) => `Player ${i + 1}`);
+  }
+  try {
+    const players = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+    return Array.isArray(players) ? players : [];
+  } catch {
+    return [];
+  }
+}
+
+function generateClientBracketStructureFromPlayers(players) {
+  // Matches the frontend's expected IDs: r1_m1..r1_m16, r2_m1..r2_m8, ... r5_m1
+  const round1Matches = Array.from({ length: 16 }, (_, i) => {
+    const playerA = players[i * 2] ?? `Player ${i * 2 + 1}`;
+    const playerB = players[i * 2 + 1] ?? `Player ${i * 2 + 2}`;
+    const isBye = playerA === "Bye" || playerB === "Bye";
+    return { id: `r1_m${i + 1}`, playerA, playerB, isBye };
+  });
+
+  const rounds = [
+    { name: "Round of 32", matches: round1Matches },
+    {
+      name: "Round of 16",
+      matches: Array.from({ length: 8 }, (_, i) => ({
+        id: `r2_m${i + 1}`,
+        prevA: `r1_m${i * 2 + 1}`,
+        prevB: `r1_m${i * 2 + 2}`,
+      })),
+    },
+    {
+      name: "Quarterfinals",
+      matches: Array.from({ length: 4 }, (_, i) => ({
+        id: `r3_m${i + 1}`,
+        prevA: `r2_m${i * 2 + 1}`,
+        prevB: `r2_m${i * 2 + 2}`,
+      })),
+    },
+    {
+      name: "Semifinals",
+      matches: Array.from({ length: 2 }, (_, i) => ({
+        id: `r4_m${i + 1}`,
+        prevA: `r3_m${i * 2 + 1}`,
+        prevB: `r3_m${i * 2 + 2}`,
+      })),
+    },
+    {
+      name: "Finals",
+      matches: [{ id: "r5_m1", prevA: "r4_m1", prevB: "r4_m2" }],
+    },
+  ];
+
+  return { rounds };
+}
+
+function normalizePredictionToRounds(prediction) {
+  const bracket = prediction?.bracket;
+
+  // Already in "rounds" format
+  if (bracket && bracket.rounds && Array.isArray(bracket.rounds)) {
+    return bracket.rounds;
+  }
+
+  // Frontend submits a flat map like: { r1_m1: "Name", r2_m3: "Name", ... }
+  if (!bracket || typeof bracket !== "object") return [];
+
+  const players = getTournamentPlayers();
+  const structure = generateClientBracketStructureFromPlayers(players);
+  const winnerById = bracket; // alias for clarity
+
+  const getWinner = (id) => {
+    const w = winnerById?.[id];
+    return typeof w === "string" && w.trim() !== "" ? w.trim() : null;
+  };
+
+  // Build Round 1 from tournament players file
+  const r1 = {
+    name: structure.rounds[0].name,
+    matches: structure.rounds[0].matches.map((m) => ({
+      id: m.id,
+      playerA: m.playerA,
+      playerB: m.playerB,
+      isBye: m.isBye,
+      winner: getWinner(m.id),
+    })),
+  };
+
+  const resolveParticipants = (prevA, prevB) => {
+    const a = getWinner(prevA);
+    const b = getWinner(prevB);
+    return { playerA: a, playerB: b };
+  };
+
+  const buildNextRound = (roundDef) => ({
+    name: roundDef.name,
+    matches: roundDef.matches.map((m) => {
+      const { playerA, playerB } = resolveParticipants(m.prevA, m.prevB);
+      return {
+        id: m.id,
+        playerA,
+        playerB,
+        isBye: false,
+        winner: getWinner(m.id),
+      };
+    }),
+  });
+
+  return [
+    r1,
+    buildNextRound(structure.rounds[1]),
+    buildNextRound(structure.rounds[2]),
+    buildNextRound(structure.rounds[3]),
+    buildNextRound(structure.rounds[4]),
+  ];
+}
+
 // Get bracket structure info
 app.get("/api/bracket-structure", (req, res) => {
   const structure = generateBracketStructure();
@@ -144,6 +262,26 @@ app.get("/api/stats/total-predictions", (req, res) => {
     const data = fs.readFileSync(DATA_FILE);
     const predictions = JSON.parse(data);
     res.json({ totalPredictions: predictions.length });
+  } catch (err) {
+    console.error("Error reading predictions:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get unique players count
+app.get("/api/stats/unique-players", (req, res) => {
+  try {
+    const data = fs.readFileSync(DATA_FILE);
+    const predictions = JSON.parse(data);
+
+    const unique = new Set(
+      predictions
+        .map((p) => (typeof p.playerName === "string" ? p.playerName : ""))
+        .map((name) => name.trim().toLowerCase())
+        .filter(Boolean),
+    );
+
+    res.json({ uniquePlayers: unique.size });
   } catch (err) {
     console.error("Error reading predictions:", err);
     res.status(500).json({ error: "Server error" });
@@ -170,10 +308,9 @@ app.get("/api/stats/most-predicted-winner", (req, res) => {
     const allPlayerWins = {};
 
     predictions.forEach((prediction) => {
-      const bracket = prediction.bracket;
-
-      if (bracket.rounds && Array.isArray(bracket.rounds)) {
-        bracket.rounds.forEach((round, roundIdx) => {
+      const rounds = normalizePredictionToRounds(prediction);
+      if (rounds && Array.isArray(rounds)) {
+        rounds.forEach((round, roundIdx) => {
           if (!roundStats[roundIdx]) {
             roundStats[roundIdx] = {
               roundName: round.name || `Round ${roundIdx + 1}`,
@@ -264,10 +401,9 @@ app.get("/api/stats/upset-alerts", (req, res) => {
     const roundStats = [];
 
     predictions.forEach((prediction) => {
-      const bracket = prediction.bracket;
-
-      if (bracket.rounds && Array.isArray(bracket.rounds)) {
-        bracket.rounds.forEach((round, roundIdx) => {
+      const rounds = normalizePredictionToRounds(prediction);
+      if (rounds && Array.isArray(rounds)) {
+        rounds.forEach((round, roundIdx) => {
           if (!roundStats[roundIdx]) {
             roundStats[roundIdx] = {
               roundName: round.name || `Round ${roundIdx + 1}`,
@@ -347,10 +483,9 @@ app.get("/api/stats/popular-matchups", (req, res) => {
     const matchupStats = [];
 
     predictions.forEach((prediction) => {
-      const bracket = prediction.bracket;
-
-      if (bracket.rounds && Array.isArray(bracket.rounds)) {
-        bracket.rounds.forEach((round, roundIdx) => {
+      const rounds = normalizePredictionToRounds(prediction);
+      if (rounds && Array.isArray(rounds)) {
+        rounds.forEach((round, roundIdx) => {
           if (!matchupStats[roundIdx]) {
             matchupStats[roundIdx] = {
               roundName: round.name || `Round ${roundIdx + 1}`,
