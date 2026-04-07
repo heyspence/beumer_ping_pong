@@ -41,10 +41,12 @@ app.get("/api/players", (req, res) => {
 
 // Submit a complete bracket prediction
 app.post("/api/predictions", (req, res) => {
-  const { playerId, bracket } = req.body;
+  const { playerName, betType, bracket } = req.body;
 
-  if (!playerId || !bracket) {
-    return res.status(400).json({ error: "Player ID and bracket required" });
+  if (!playerName || !betType || !bracket) {
+    return res
+      .status(400)
+      .json({ error: "Player name, bet type and bracket required" });
   }
 
   let predictions = [];
@@ -61,7 +63,8 @@ app.post("/api/predictions", (req, res) => {
 
   const newPrediction = {
     id: uuidv4(),
-    playerId,
+    playerName,
+    betType,
     bracket,
     timestamp: new Date().toISOString(),
   };
