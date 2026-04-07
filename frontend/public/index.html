@@ -631,16 +631,18 @@
                         });
 
                         if (response.ok) {
-                            showStatus(
-                                "✅ Bracket submitted successfully! 🎉",
-                                "success",
-                            );
                             refreshEntrySlotsHint();
+
+                            if (betType === "$5") {
+                                const paymentMsg = `✅ Bracket submitted! 🎉\n\nPAYMENT REQUIRED:\nVenmo: @hey_spence\nZelle: (971)777-1485\n\nPayment must be received to validate your entry.`;
+                                showStatus(paymentMsg, "success");
+                            } else {
+                                showStatus("✅ Bracket submitted successfully! 🎉", "success");
+                            }
+
                             setTimeout(() => {
-                                document.querySelector(
-                                    ".status",
-                                ).style.display = "none";
-                            }, 5000);
+                                document.querySelector(".status").style.display = "none";
+                            }, 8000);
                         } else {
                             const data = await response.json();
                             showStatus(`❌ Error: ${data.error}`, "error");
