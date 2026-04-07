@@ -13,7 +13,12 @@ const DATA_FILE = path.join(__dirname, "data", "predictions.json");
 app.use(cors());
 app.use(bodyParser.json());
 
-// Initialize predictions file if it doesn't exist
+// Create data directory if needed and initialize predictions file
+const DATA_DIR = path.join(__dirname, "data");
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
