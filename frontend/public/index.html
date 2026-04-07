@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Ping Pong Tournament Bracket Predictor</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1800px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                padding: 30px;
+            }
+            h1 {
+                text-align: center;
+                color: #667eea;
+                margin-bottom: 20px;
+                font-size: 28px;
+            }
+            .instructions {
+                text-align: center;
+                margin-bottom: 30px;
+                padding: 15px 20px;
+                background: #e9ecef;
+                border-radius: 8px;
+            }
+            .instructions p {
+                margin: 5px 0;
+                color: #495057;
+            }
+            .bracket-container {
+                display: flex;
+                gap: 30px;
+                overflow-x: auto;
+                padding-bottom: 20px;
+                margin-top: 20px;
+            }
+            .round-column {
+                min-width: 280px;
+                max-width: 300px;
+                background: #f8f9fa;
+                border-radius: 10px;
+                padding: 15px;
+            }
+            .round-title {
+                font-size: 16px;
+                color: #667eea;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #667eea;
+                text-align: center;
+            }
+            .matchup {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px;
+                background: white;
+                border-radius: 6px;
+                margin-bottom: 12px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .matchup.locked {
+                opacity: 0.5;
+                cursor: not-allowed;
+                background: #e9ecef;
+            }
+            .player-select-field {
+                flex: 1;
+                padding: 8px;
+                font-size: 13px;
+                border: 2px solid #ddd;
+                border-radius: 4px;
+                cursor: pointer;
+                background: white;
+            }
+            .player-select-field:disabled {
+                background: #e9ecef;
+                cursor: not-allowed;
+            }
+            button.submit-btn {
+                display: block;
+                margin: 30px auto;
+                padding: 15px 40px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+            }
+            button.submit-btn:hover {
+                transform: scale(1.02);
+            }
+            .status {
+                text-align: center;
+                margin-top: 20px;
+                padding: 15px;
+                border-radius: 8px;
+                display: none;
+                font-weight: bold;
+            }
+            .success {
+                background: #d4edda;
+                color: #155724;
+                display: block;
+            }
+            .error {
+                background: #f8d7da;
+                color: #721c24;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🏓 Tournament Bracket Predictor 🏓</h1>
+
+            <div class="instructions">
+                <p>
+                    <strong>Rounds cascade:</strong> Winners from earlier rounds
+                    become options in later matches!
+                </p>
+                <p>
+                    Predict all 16 Round of 32 games first, then watch the
+                    bracket fill up automatically.
+                </p>
+            </div>
+
+            <form id="bracketForm">
+                <input type="hidden" id="playerId" value="" />
+                <div class="bracket-container" id="bracketContainer"></div>
+                <button type="submit" class="submit-btn">
+                    Submit Bracket Prediction
+                </button>
+            </form>
+
+            <div id="statusMessage" class="status"></div>
+        </div>
+
+        <script>
+            const API_URL = "http://localhost:3001/api";
+
+            // Real player data for Round 1 matches
+            const round1Matches = [
+                { match: 1, player1: "Kevin Blum", player2: "Bye" },
+                { match: 2, player1: "Keith Morris", player2: "Ben Schnelker" },
+                {
+                    match: 3,
+                    player1: "Daniel White",
+                    player2: "Henrik Christensen",
+                },
+                {
+                    match: 4,
+                    player1: "Carlo Aclao",
+                    player2: "Izabella Ksiazek",
+                },
+                { match: 5, player1: "Tom Slawinski", player2: "Bye" },
+                { match: 6, player1: "Lihong Wu", player2: "Jundy Lacuata" },
+                {
+                    match: 7,
+                    player1: "Andrew Rears",
+                    player2: "Pedro de Resende",
+                },
+                { match: 8, player1: "Xin Liu", player2: "Bye" },
+                { match: 9, player1: "Bill Tamashunas", player2: "Bye" },
+                {
+                    match: 10,
+                    player1: "Drew Rodriguez",
+                    player2: "Matt De La Hoz",
+                },
+                {
+                    match: 11,
+                    player1: "Vishal Ahuja",
+                    player2: "Dvir Hizkiyahu",
+                },
+                { match: 12, player1: "Spencer Heywood", player2: "Bye" },
+                {
+                    match: 13,
+                    player1: "Adam Zukowski",
+                    player2: "Gautam Agarwal",
+                },
+                { match: 14, player1: "Lorenz Nunag", player2: "John Manalo" },
+                {
+                    match: 15,
+                    player1: "Andre de Resende",
+                    player2: "Brian McMahon",
+                },
+                { match: 16, player1: "Pierre Damis", player2: "Bye" },
+            ];
+
+            function generateBracketStructure() {
+                return {
+                    totalPlayers: 32,
+                    rounds: [
+                        {
+                            name: "Round of 32",
+                            roundIndex: 0,
+                            matches: round1Matches.map((m, i) => ({
+                                id: `r1_m${i + 1}`,
+                                playerA: m.player1,
+                                playerB: m.player2,
+                                isBye:
+                                    m.player2 === "Bye" || m.player1 === "Bye",
+                            })),
+                        },
+                        {
+                            name: "Round of 16",
+                            roundIndex: 1,
+                            matches: Array.from({ length: 8 }, (_, i) => ({
+                                id: `r2_m${i + 1}`,
+                                prevMatchA: `r1_m${i * 2 + 1}_winner`,
+                                prevMatchB: `r1_m${i * 2 + 2}_winner`,
+                            })),
+                        },
+                        {
+                            name: "Quarterfinals",
+                            roundIndex: 2,
+                            matches: Array.from({ length: 4 }, (_, i) => ({
+                                id: `r3_m${i + 1}`,
+                                prevMatchA: `r2_m${i * 2 + 1}_winner`,
+                                prevMatchB: `r2_m${i * 2 + 2}_winner`,
+                            })),
+                        },
+                        {
+                            name: "Semifinals",
+                            roundIndex: 3,
+                            matches: Array.from({ length: 2 }, (_, i) => ({
+                                id: `r4_m${i + 1}`,
+                                prevMatchA: `r3_m${i * 2 + 1}_winner`,
+                                prevMatchB: `r3_m${i * 2 + 2}_winner`,
+                            })),
+                        },
+                        {
+                            name: "Finals",
+                            roundIndex: 4,
+                            matches: [
+                                {
+                                    id: `r5_m1`,
+                                    prevMatchA: `r4_m1_winner`,
+                                    prevMatchB: `r4_m2_winner`,
+                                },
+                            ],
+                        },
+                    ],
+                };
+            }
+
+            function getPrevMatchId(source) {
+                const match = source.match(/^(r\d+)_m(\d+)/);
+                if (match) return `${match[1]}_m${match[2]}`;
+                return null;
+            }
+
+            function shouldEnableMatch(match, roundIndex) {
+                if (roundIndex === 0) return true;
+
+                const prevMatchA = getPrevMatchId(match.prevMatchA);
+                const prevMatchB = getPrevMatchId(match.prevMatchB);
+
+                if (!prevMatchA || !prevMatchB) return false;
+
+                const winnerA = document.getElementById(
+                    `${prevMatchA}_winner`,
+                )?.value;
+                const winnerB = document.getElementById(
+                    `${prevMatchB}_winner`,
+                )?.value;
+
+                if (winnerA === "" || winnerB === "") return false;
+                return true;
+            }
+
+            function getOptionsForMatch(match, roundIndex) {
+                if (roundIndex === 0) {
+                    // For Round 1 with Byes
+                    if (match.isBye) {
+                        const player =
+                            match.playerA === "Bye"
+                                ? match.playerB
+                                : match.playerA;
+                        return [player]; // Only one option - auto-advance
+                    }
+                    return [match.playerA, match.playerB];
+                }
+
+                const prevMatchA = getPrevMatchId(match.prevMatchA);
+                const prevMatchB = getPrevMatchId(match.prevMatchB);
+
+                if (!prevMatchA || !prevMatchB) return [];
+
+                const winnerA = document.getElementById(
+                    `${prevMatchA}_winner`,
+                )?.value;
+                const winnerB = document.getElementById(
+                    `${prevMatchB}_winner`,
+                )?.value;
+
+                if (winnerA === "" || winnerB === "") return null;
+
+                // Return player names from previous round winners
+                return [winnerA, winnerB];
+            }
+
+            function renderBracket() {
+                const container = document.getElementById("bracketContainer");
+                const structure = generateBracketStructure();
+                let html = "";
+
+                // Save current selections before re-rendering
+                const savedSelections = {};
+                document.querySelectorAll("[id$='_winner']").forEach((el) => {
+                    if (el.value && el.value !== "") {
+                        savedSelections[el.id] = el.value;
+                    }
+                });
+
+                structure.rounds.forEach((round) => {
+                    html += `<div class="round-column"><h3 class="round-title">${round.name}</h3>`;
+
+                    round.matches.forEach((match) => {
+                        const enabled = shouldEnableMatch(
+                            match,
+                            round.roundIndex,
+                        );
+                        const options = getOptionsForMatch(
+                            match,
+                            round.roundIndex,
+                        );
+
+                        if (!enabled || !options) {
+                            html += `<div class="matchup locked"><select id="${match.id}_winner" class="player-select-field" disabled><option value="">Wait for previous rounds...</option></select></div>`;
+                        } else {
+                            let optionsHtml =
+                                '<option value="">Select winner...</option>';
+
+                            if (round.roundIndex === 0) {
+                                if (match.isBye) {
+                                    const player =
+                                        match.playerA === "Bye"
+                                            ? match.playerB
+                                            : match.playerA;
+                                    // Auto-select the non-Bye player
+                                    optionsHtml += `<option value="${player}" selected>${player}</option>`;
+                                    optionsHtml += `<option value="Bye">Bye</option>`;
+                                } else {
+                                    optionsHtml += `<option value="${match.playerA}">${match.playerA}</option>`;
+                                    optionsHtml += `<option value="${match.playerB}">${match.playerB}</option>`;
+                                }
+                            } else {
+                                options.forEach((playerName) => {
+                                    if (playerName !== "Bye") {
+                                        optionsHtml += `<option value="${playerName}">${playerName}</option>`;
+                                    }
+                                });
+                            }
+
+                            html += `<div class="matchup"><select id="${match.id}_winner" class="player-select-field">${optionsHtml}</select></div>`;
+                        }
+                    });
+
+                    html += "</div>";
+                });
+
+                container.innerHTML = html;
+
+                // Restore saved selections after re-rendering
+                Object.entries(savedSelections).forEach(([id, value]) => {
+                    const el = document.getElementById(id);
+                    if (el && el.value !== value) {
+                        el.value = value;
+                    }
+                });
+            }
+
+            function setupEventListeners() {
+                // Use event delegation on container so new dropdowns get listeners too
+                document
+                    .getElementById("bracketContainer")
+                    .addEventListener("change", (e) => {
+                        if (
+                            e.target.classList.contains("player-select-field")
+                        ) {
+                            renderBracket();
+                        }
+                    });
+            }
+
+            function showStatus(message, type) {
+                const statusDiv = document.getElementById("statusMessage");
+                statusDiv.className = `status ${type}`;
+                statusDiv.textContent = message;
+                statusDiv.style.display = "block";
+            }
+
+            async function loadBrackets() {
+                renderBracket();
+                setupEventListeners();
+            }
+
+            document
+                .getElementById("bracketForm")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+
+                    const playerId = parseInt(
+                        document.getElementById("playerId").value,
+                    );
+                    if (!playerId || isNaN(playerId)) {
+                        showStatus("Please select a player first!", "error");
+                        return;
+                    }
+
+                    const bracketPredictions = {};
+                    let valid = true;
+
+                    document
+                        .querySelectorAll("[id$='_winner']")
+                        .forEach((select) => {
+                            if (select.disabled) return; // Skip locked matches
+
+                            const winner = select.value;
+                            if (!winner || winner === "") {
+                                valid = false;
+                                return;
+                            }
+
+                            bracketPredictions[
+                                select.id.replace("_winner", "")
+                            ] = winner;
+                        });
+
+                    if (!valid) {
+                        showStatus(
+                            "Please select winners for all active matches!",
+                            "error",
+                        );
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${API_URL}/predictions`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                playerId,
+                                bracket: bracketPredictions,
+                            }),
+                        });
+
+                        if (response.ok) {
+                            showStatus(
+                                "✅ Bracket submitted successfully! 🎉",
+                                "success",
+                            );
+                            setTimeout(() => {
+                                document.querySelector(
+                                    ".status",
+                                ).style.display = "none";
+                            }, 5000);
+                        } else {
+                            const data = await response.json();
+                            showStatus(`❌ Error: ${data.error}`, "error");
+                        }
+                    } catch (err) {
+                        showStatus(
+                            "❌ Server connection failed. Is the backend running?",
+                            "error",
+                        );
+                    }
+                });
+
+            loadBrackets();
+        </script>
+    </body>
+</html>
