@@ -16,7 +16,7 @@
                 padding: 20px;
             }
             .container {
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
             }
             h1 {
@@ -201,6 +201,167 @@
                 border: 1px solid #ccc;
                 font-size: 14px;
             }
+
+            /* Four-corner bracket + center championship */
+            .bracket-arena-wrap {
+                overflow-x: auto;
+                padding: 8px 0 24px;
+            }
+            .bracket-arena {
+                display: grid;
+                grid-template-columns: 1fr minmax(200px, 280px) 1fr;
+                grid-template-rows: minmax(220px, auto) minmax(180px, auto) minmax(
+                    220px,
+                    auto
+                );
+                gap: 14px;
+                align-items: stretch;
+                min-width: 720px;
+            }
+            .bracket-corner {
+                border: 2px solid #667eea;
+                border-radius: 12px;
+                padding: 12px;
+                background: linear-gradient(145deg, #fafbff 0%, #f0f2ff 100%);
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .corner-tl {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            .corner-tr {
+                grid-column: 3;
+                grid-row: 1;
+            }
+            .corner-bl {
+                grid-column: 1;
+                grid-row: 3;
+            }
+            .corner-br {
+                grid-column: 3;
+                grid-row: 3;
+            }
+            .bracket-center {
+                grid-column: 2;
+                grid-row: 1 / span 3;
+                border: 2px solid #4caf50;
+                border-radius: 12px;
+                padding: 16px 14px;
+                background: linear-gradient(180deg, #f8fff8 0%, #eef9ee 100%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 16px;
+                min-height: 320px;
+            }
+            .bracket-center-title {
+                text-align: center;
+                font-size: 13px;
+                font-weight: bold;
+                color: #2e7d32;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .quarter-title {
+                font-size: 12px;
+                font-weight: bold;
+                color: #667eea;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                margin-bottom: 4px;
+            }
+            .quarter-sub {
+                font-size: 11px;
+                color: #888;
+                margin-bottom: 6px;
+            }
+            .quarter-r32-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .quarter-r16-row,
+            .quarter-qf-row {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .round-label-mini {
+                font-size: 10px;
+                color: #999;
+                text-transform: uppercase;
+                margin-top: 4px;
+            }
+            .bracket-match {
+                border: 1px solid #cfd4e6;
+                border-radius: 6px;
+                overflow: hidden;
+                background: #fff;
+                font-size: 12px;
+                min-width: 0;
+            }
+            .bracket-match-id {
+                font-size: 9px;
+                color: #aaa;
+                padding: 2px 6px;
+                background: #f5f5f5;
+                border-bottom: 1px solid #eee;
+            }
+            .bracket-player {
+                padding: 6px 8px;
+                border-bottom: 1px solid #eee;
+                color: #333;
+            }
+            .bracket-player:last-child {
+                border-bottom: none;
+            }
+            .bracket-player.is-winner {
+                background: #d4edda;
+                font-weight: bold;
+                color: #155724;
+            }
+            .bracket-player.is-bye {
+                color: #999;
+                font-style: italic;
+            }
+            .bracket-match.match-bye .bracket-player:not(.is-bye) {
+                font-weight: 600;
+            }
+            @media (max-width: 900px) {
+                .bracket-arena {
+                    min-width: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 14px;
+                }
+                .corner-tl,
+                .corner-tr,
+                .corner-bl,
+                .corner-br {
+                    grid-column: unset;
+                    grid-row: unset;
+                }
+                .corner-tl {
+                    order: 1;
+                }
+                .corner-tr {
+                    order: 2;
+                }
+                .corner-bl {
+                    order: 3;
+                }
+                .corner-br {
+                    order: 4;
+                }
+                .bracket-center {
+                    order: 5;
+                    grid-column: unset;
+                    grid-row: unset;
+                    min-height: auto;
+                }
+            }
         </style>
     </head>
     <body>
@@ -313,7 +474,9 @@
                     👀 Browse submissions
                 </h3>
                 <p style="color: #666; margin-bottom: 16px; font-size: 14px">
-                    Step through each saved bracket to see what people picked.
+                    Step through each saved bracket. Four regional quadrants feed
+                    the championship column in the center (winner highlighted in
+                    green).
                 </p>
                 <div class="submission-toolbar">
                     <button type="button" class="btn-nav" id="subPrev">
@@ -377,13 +540,254 @@
                     .replace(/"/g, "&quot;");
             }
 
-            const ROUND_LABELS = {
-                r1: "Round of 32",
-                r2: "Round of 16",
-                r3: "Quarterfinals",
-                r4: "Semifinals",
-                r5: "Finals",
+            const ROUND1_MATCHES = [
+                { match: 1, player1: "Kevin Blum", player2: "Bye" },
+                { match: 2, player1: "Keith Morris", player2: "Ben Schnelker" },
+                {
+                    match: 3,
+                    player1: "Daniel White",
+                    player2: "Henrik Christensen",
+                },
+                {
+                    match: 4,
+                    player1: "Carlo Aclao",
+                    player2: "Izabella Ksiazek",
+                },
+                { match: 5, player1: "Tom Slawinski", player2: "Bye" },
+                { match: 6, player1: "Lihong Wu", player2: "Jundy Lacuata" },
+                {
+                    match: 7,
+                    player1: "Andrew Rears",
+                    player2: "Pedro de Resende",
+                },
+                { match: 8, player1: "Xin Liu", player2: "Bye" },
+                { match: 9, player1: "Bill Tamashunas", player2: "Bye" },
+                {
+                    match: 10,
+                    player1: "Drew Rodriguez",
+                    player2: "Matt De La Hoz",
+                },
+                {
+                    match: 11,
+                    player1: "Vishal Ahuja",
+                    player2: "Dvir Hizkiyahu",
+                },
+                { match: 12, player1: "Spencer Heywood", player2: "Bye" },
+                {
+                    match: 13,
+                    player1: "Adam Zukowski",
+                    player2: "Gautam Agarwal",
+                },
+                { match: 14, player1: "Lorenz Nunag", player2: "John Manalo" },
+                {
+                    match: 15,
+                    player1: "Andre de Resende",
+                    player2: "Brian McMahon",
+                },
+                { match: 16, player1: "Pierre Damis", player2: "Bye" },
+            ];
+
+            function getPrevMatchId(source) {
+                const m = String(source).match(/^(r\d+)_m(\d+)/);
+                if (m) return `${m[1]}_m${m[2]}`;
+                return null;
+            }
+
+            function generateBracketStructure() {
+                return {
+                    rounds: [
+                        {
+                            name: "Round of 32",
+                            matches: ROUND1_MATCHES.map((m, i) => ({
+                                id: `r1_m${i + 1}`,
+                                playerA: m.player1,
+                                playerB: m.player2,
+                                isBye:
+                                    m.player2 === "Bye" || m.player1 === "Bye",
+                            })),
+                        },
+                        {
+                            name: "Round of 16",
+                            matches: Array.from({ length: 8 }, (_, i) => ({
+                                id: `r2_m${i + 1}`,
+                                prevMatchA: `r1_m${i * 2 + 1}_winner`,
+                                prevMatchB: `r1_m${i * 2 + 2}_winner`,
+                            })),
+                        },
+                        {
+                            name: "Quarterfinals",
+                            matches: Array.from({ length: 4 }, (_, i) => ({
+                                id: `r3_m${i + 1}`,
+                                prevMatchA: `r2_m${i * 2 + 1}_winner`,
+                                prevMatchB: `r2_m${i * 2 + 2}_winner`,
+                            })),
+                        },
+                        {
+                            name: "Semifinals",
+                            matches: Array.from({ length: 2 }, (_, i) => ({
+                                id: `r4_m${i + 1}`,
+                                prevMatchA: `r3_m${i * 2 + 1}_winner`,
+                                prevMatchB: `r3_m${i * 2 + 2}_winner`,
+                            })),
+                        },
+                        {
+                            name: "Finals",
+                            matches: [
+                                {
+                                    id: "r5_m1",
+                                    prevMatchA: "r4_m1_winner",
+                                    prevMatchB: "r4_m2_winner",
+                                },
+                            ],
+                        },
+                    ],
+                };
+            }
+
+            function buildMatchMapFromFlat(flat) {
+                const structure = generateBracketStructure();
+                const map = {};
+                structure.rounds.forEach((round, rIdx) => {
+                    round.matches.forEach((match) => {
+                        if (rIdx === 0) {
+                            map[match.id] = {
+                                id: match.id,
+                                playerA: match.playerA,
+                                playerB: match.playerB,
+                                isBye: match.isBye,
+                                winner: flat[match.id] || null,
+                            };
+                            return;
+                        }
+                        const prevA = getPrevMatchId(match.prevMatchA);
+                        const prevB = getPrevMatchId(match.prevMatchB);
+                        const wa = prevA ? flat[prevA] : null;
+                        const wb = prevB ? flat[prevB] : null;
+                        map[match.id] = {
+                            id: match.id,
+                            playerA: wa || null,
+                            playerB: wb || null,
+                            isBye: false,
+                            winner: flat[match.id] || null,
+                        };
+                    });
+                });
+                return map;
+            }
+
+            const QUARTERS = {
+                tl: {
+                    title: "Quadrant 1",
+                    sub: "Round of 32 → QF",
+                    r32: ["r1_m1", "r1_m2", "r1_m3", "r1_m4"],
+                    r16: ["r2_m1", "r2_m2"],
+                    qf: ["r3_m1"],
+                },
+                tr: {
+                    title: "Quadrant 2",
+                    sub: "Round of 32 → QF",
+                    r32: ["r1_m5", "r1_m6", "r1_m7", "r1_m8"],
+                    r16: ["r2_m3", "r2_m4"],
+                    qf: ["r3_m2"],
+                },
+                bl: {
+                    title: "Quadrant 3",
+                    sub: "Round of 32 → QF",
+                    r32: ["r1_m9", "r1_m10", "r1_m11", "r1_m12"],
+                    r16: ["r2_m5", "r2_m6"],
+                    qf: ["r3_m3"],
+                },
+                br: {
+                    title: "Quadrant 4",
+                    sub: "Round of 32 → QF",
+                    r32: ["r1_m13", "r1_m14", "r1_m15", "r1_m16"],
+                    r16: ["r2_m7", "r2_m8"],
+                    qf: ["r3_m4"],
+                },
             };
+
+            function matchBoxHtml(m) {
+                if (!m) {
+                    return '<div class="bracket-match"><div class="bracket-player">—</div></div>';
+                }
+                const a = m.playerA || "—";
+                const b = m.playerB || "—";
+                const w = m.winner;
+                const clsA =
+                    w && a && w !== "Bye" && w === a ? " is-winner" : "";
+                const clsB =
+                    w && b && w !== "Bye" && w === b ? " is-winner" : "";
+                const byeA = a === "Bye" ? " is-bye" : "";
+                const byeB = b === "Bye" ? " is-bye" : "";
+                const byeWrap = m.isBye ? " match-bye" : "";
+                return `<div class="bracket-match${byeWrap}">
+                    <div class="bracket-match-id">${escapeHtml(m.id)}</div>
+                    <div class="bracket-player${clsA}${byeA}">${escapeHtml(a)}</div>
+                    <div class="bracket-player${clsB}${byeB}">${escapeHtml(b)}</div>
+                </div>`;
+            }
+
+            function renderQuarter(quarterKey, matchMap) {
+                const q = QUARTERS[quarterKey];
+                let inner = `<div class="quarter-title">${escapeHtml(q.title)}</div>`;
+                inner += `<div class="quarter-sub">${escapeHtml(q.sub)}</div>`;
+                inner += `<div class="round-label-mini">Round of 32</div><div class="quarter-r32-grid">`;
+                q.r32.forEach((id) => {
+                    inner += matchBoxHtml(matchMap[id]);
+                });
+                inner += `</div><div class="round-label-mini">Round of 16</div><div class="quarter-r16-row">`;
+                q.r16.forEach((id) => {
+                    inner += matchBoxHtml(matchMap[id]);
+                });
+                inner += `</div><div class="round-label-mini">Quarterfinals</div><div class="quarter-qf-row">`;
+                q.qf.forEach((id) => {
+                    inner += matchBoxHtml(matchMap[id]);
+                });
+                inner += "</div>";
+                return `<div class="bracket-corner corner-${quarterKey}">${inner}</div>`;
+            }
+
+            function formatBracketVisualHtml(flat) {
+                const standardKeys = Object.keys(flat || {}).filter((k) =>
+                    /^r\d+_m\d+$/.test(k),
+                );
+                const stray = Object.entries(flat || {}).filter(
+                    ([k]) => !/^r\d+_m\d+$/.test(k),
+                );
+                if (!standardKeys.length && !stray.length) {
+                    return '<p style="color:#666">No bracket picks saved for this submission.</p>';
+                }
+                let html = "";
+                if (standardKeys.length) {
+                    const matchMap = buildMatchMapFromFlat(flat);
+                    html +=
+                        '<div class="bracket-arena-wrap"><div class="bracket-arena">';
+                    html += renderQuarter("tl", matchMap);
+                    html += renderQuarter("tr", matchMap);
+                    html += renderQuarter("bl", matchMap);
+                    html += renderQuarter("br", matchMap);
+                    html += `<div class="bracket-center">
+                    <div class="bracket-center-title">Championship</div>
+                    <div class="round-label-mini" style="text-align:center">Semifinals</div>
+                    ${matchBoxHtml(matchMap["r4_m1"])}
+                    ${matchBoxHtml(matchMap["r4_m2"])}
+                    <div class="round-label-mini" style="text-align:center">Final</div>
+                    ${matchBoxHtml(matchMap["r5_m1"])}
+                </div>`;
+                    html += "</div></div>";
+                }
+                if (stray.length) {
+                    html +=
+                        '<div class="bracket-round-block" style="margin-top:20px"><h4>Other data</h4><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
+                    stray
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .forEach(([k, v]) => {
+                            html += `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`;
+                        });
+                    html += "</tbody></table></div>";
+                }
+                return html;
+            }
 
             function normalizeBracketToFlat(bracket) {
                 if (!bracket || typeof bracket !== "object") return {};
@@ -405,59 +809,6 @@
                     return "Submit for Fun (no bet)";
                 }
                 return t;
-            }
-
-            function formatBracketHtml(flat) {
-                const groups = {};
-                for (const [matchId, winner] of Object.entries(flat)) {
-                    const m = String(matchId).match(/^(r\d+)_m(\d+)$/);
-                    if (!m) continue;
-                    const prefix = m[1];
-                    if (!groups[prefix]) groups[prefix] = [];
-                    groups[prefix].push({ matchId, winner });
-                }
-                const order = ["r1", "r2", "r3", "r4", "r5"];
-                let html = "";
-                for (const prefix of order) {
-                    const rows = groups[prefix];
-                    if (!rows || !rows.length) continue;
-                    rows.sort((a, b) => {
-                        const na = parseInt(
-                            String(a.matchId).match(/_m(\d+)$/)?.[1] || "0",
-                            10,
-                        );
-                        const nb = parseInt(
-                            String(b.matchId).match(/_m(\d+)$/)?.[1] || "0",
-                            10,
-                        );
-                        return na - nb;
-                    });
-                    const title = ROUND_LABELS[prefix] || prefix;
-                    html += `<div class="bracket-round-block"><h4>${escapeHtml(title)}</h4>`;
-                    html +=
-                        '<table><thead><tr><th>Match</th><th>Predicted winner</th></tr></thead><tbody>';
-                    for (const row of rows) {
-                        html += `<tr><td>${escapeHtml(row.matchId)}</td><td><span class="player-name">${escapeHtml(row.winner)}</span></td></tr>`;
-                    }
-                    html += "</tbody></table></div>";
-                }
-                const stray = Object.entries(flat).filter(
-                    ([k]) => !/^r\d+_m\d+$/.test(k),
-                );
-                if (stray.length) {
-                    html +=
-                        '<div class="bracket-round-block"><h4>Other picks</h4><table><thead><tr><th>Key</th><th>Winner</th></tr></thead><tbody>';
-                    stray
-                        .sort((a, b) => a[0].localeCompare(b[0]))
-                        .forEach(([k, v]) => {
-                            html += `<tr><td>${escapeHtml(k)}</td><td><span class="player-name">${escapeHtml(v)}</span></td></tr>`;
-                        });
-                    html += "</tbody></table></div>";
-                }
-                return (
-                    html ||
-                    '<p style="color:#666">No bracket picks saved for this submission.</p>'
-                );
             }
 
             let submissionsList = [];
@@ -485,7 +836,7 @@
 
                 const p = submissionsList[submissionIndex];
                 const flat = normalizeBracketToFlat(p.bracket);
-                area.innerHTML = formatBracketHtml(flat);
+                area.innerHTML = formatBracketVisualHtml(flat);
 
                 counter.textContent = `${submissionIndex + 1} / ${submissionsList.length}`;
                 const t = p.timestamp
