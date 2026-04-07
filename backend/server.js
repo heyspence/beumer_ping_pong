@@ -58,11 +58,27 @@ app.post("/api/predictions", (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 
-  // Check if player already has a prediction
-  const existingIndex = predictions.findIndex((p) => p.playerId === playerId);
+  // Check if player already has a prediction (by matching name and bracket)
+  const { playerId: submittedPlayerId } = req.body;
+  let existingIndex = -1;
+
+  if (submittedPlayerId) {
+    existingIndex = predictions.findIndex((p) => p.id === submittedPlayerId);
+  } else {
+    // No player ID provided, check for duplicate by name and bracket similarity
+    existingIndex = predictions.findIndex(
+      (p) =>
+        p.playerName === playerName &&
+        JSON.stringify(p.bracket) === JSON.stringify(bracket),
+    );
+  }
+
+  // Use existing ID if found, otherwise generate new one
+  const predictionId =
+    existingIndex >= 0 ? predictions[existingIndex].id : uuidv4();
 
   const newPrediction = {
-    id: uuidv4(),
+    id: predictionId,
     playerName,
     betType,
     bracket,
