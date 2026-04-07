@@ -164,6 +164,23 @@
                 "
                 >View Statistics</a
             >
+            <button id="rulesBtn" style="
+                display: inline-block;
+                margin-top: 10px;
+                padding: 12px 24px;
+                background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+                color: white;
+                border: none;
+                cursor: pointer;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: transform 0.2s, box-shadow 0.2s;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(255,152,0,0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow=''">
+                Rules
+            </button>
+
+            <div style="margin-top: 20px;"></div>
 
             <div class="instructions">
                 <p>
@@ -208,7 +225,7 @@
                             font-weight: bold;
                             color: #333;
                             margin-bottom: 8px;
-                            margin-top: 16px;
+                            margin-top: 25px;
                         "
                         >Entry Type:</label
                     >
@@ -639,4 +656,180 @@
             loadBrackets();
         </script>
     </body>
-</html>
+
+    <!-- Rules Modal -->
+    <style>
+      .rules-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 1000;
+        justify-content: center;
+        align-items: flex-start;
+        overflow-y: auto;
+      }
+
+      .rules-content {
+        background: #fff;
+        margin-top: 3vh;
+        padding: 40px;
+        max-width: 700px;
+        width: 90%;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        position: relative;
+        line-height: 1.6;
+      }
+
+      .rules-content h2 {
+        color: #2c3e50;
+        margin-top: 0;
+        border-bottom: 3px solid #ff9800;
+        padding-bottom: 10px;
+        font-size: 24px;
+      }
+
+      .rules-content h3 {
+        color: #34495e;
+        margin-top: 25px;
+        font-size: 18px;
+      }
+
+      .rules-content p, .rules-content li {
+        color: #555;
+        margin-bottom: 10px;
+      }
+
+      .rules-content ul {
+        padding-left: 20px;
+        margin: 15px 0;
+      }
+
+      .payment-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid #ff9800;
+        margin: 15px 0;
+      }
+
+      .payment-warning {
+        color: #e74c3c;
+        font-weight: bold;
+        text-transform: uppercase;
+        background: #ffebee;
+        padding: 12px;
+        border-radius: 6px;
+        margin: 15px 0;
+      }
+
+      .rules-content hr {
+        border: none;
+        border-top: 1px solid #ddd;
+        margin: 20px 0;
+      }
+
+      .close-rules-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        cursor: pointer;
+        margin-top: 20px;
+        font-size: 16px;
+        border-radius: 8px;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .close-rules-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+    </style>
+
+    <div id="rulesOverlay" class="rules-overlay">
+      <div class="rules-content">
+        <h2>Ping Pong Tournament – Scoring & Payout Rules</h2>
+
+        <div class="payment-info">
+          <p><strong>Entry Fee:</strong> $5 per submission, max 2<br>
+          <strong>Venmo:</strong> @hey_spence<br>
+          <strong>Zelle:</strong> (971)777-1485</p>
+        </div>
+
+        <p class="payment-warning">Late or non-payments will disqualify your entry(s)</p>
+
+        <h3>How Scoring Works:</h3>
+        <p>Participants submit a full bracket predicting the outcome of the tournament. Points are awarded for each correct pick, with later rounds worth more than earlier rounds.</p>
+        <ul>
+          <li>Round 1: <strong>1 point</strong> per correct pick</li>
+          <li>Round 2: <strong>2 points</strong> per correct pick</li>
+          <li>Quarterfinals: <strong>4 points</strong> per correct pick</li>
+          <li>Semifinals: <strong>8 points</strong> per correct pick</li>
+          <li>Championship: <strong>16 points</strong> for correctly picking the winner</li>
+        </ul>
+
+        <h3>How Winners Are Determined:</h3>
+        <p>All participants are ranked by total points. The highest total score wins.</p>
+
+        <h3>Tiebreak Rule:</h3>
+        <p>If two or more participants finish with the same score, the tied positions will be combined and the corresponding prize money will be split evenly among those participants.</p>
+
+        <h3>Payout Structure (Winner-Take-Most):</h3>
+        <ul>
+          <li>1st Place: <strong>70%</strong> of total prize pool</li>
+          <li>2nd Place: <strong>20%</strong> of total prize pool</li>
+          <li>3rd Place: <strong>10%</strong> of total prize pool</li>
+        </ul>
+        <p>All payouts are calculated based on the total amount collected from all entries.</p>
+
+        <p><em>By submitting an entry, participants agree to these rules.</em></p>
+
+        <button id="closeRulesBtn" class="close-rules-btn">Got it!</button>
+      </div>
+    </div>
+
+    <script>
+      // Rules modal functionality
+      window.addEventListener('DOMContentLoaded', () => {
+        const rulesBtn = document.getElementById('rulesBtn');
+        if (rulesBtn) {
+          rulesBtn.addEventListener('click', openRulesModal);
+        }
+
+        const closeRulesBtn = document.getElementById('closeRulesBtn');
+        if (closeRulesBtn) {
+          closeRulesBtn.addEventListener('click', closeRulesModal);
+        }
+
+        const rulesOverlay = document.getElementById('rulesOverlay');
+        if (rulesOverlay) {
+          rulesOverlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+              closeRulesModal();
+            }
+          });
+        }
+      });
+
+      function openRulesModal() {
+        const overlay = document.getElementById('rulesOverlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+        }
+      }
+
+      function closeRulesModal() {
+        const overlay = document.getElementById('rulesOverlay');
+        if (overlay) {
+          overlay.style.display = 'none';
+        }
+      }
+    </script>
+
+    </body>
+    </html>
