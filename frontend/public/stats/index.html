@@ -518,6 +518,11 @@
         </div>
 
         <script>
+            // Same host as bracket form — required when opening this file directly (file://)
+            // or from any origin; relative "/api/..." only works when served from the backend.
+            // Intentionally HTTP (not HTTPS) for this deployment.
+            const API_URL = "http://ping-pong.spencerheywood.com/api";
+
             function setCardValue(cardIndex1Based, value) {
                 document.querySelector(
                     `.stats-grid .stat-card:nth-child(${cardIndex1Based}) .value`,
@@ -859,7 +864,7 @@
                 const area = document.getElementById("subBracketArea");
                 const jump = document.getElementById("subJump");
                 try {
-                    const res = await fetch("/api/predictions");
+                    const res = await fetch(`${API_URL}/predictions`);
                     if (!res.ok) throw new Error("bad status");
                     const data = await res.json();
                     submissionsList = Array.isArray(data) ? data : [];
@@ -904,7 +909,7 @@
                 try {
                     // Fetch total predictions
                     const totalRes = await fetch(
-                        "/api/stats/total-predictions",
+                        `${API_URL}/stats/total-predictions`,
                     );
                     if (totalRes.ok) {
                         const totalData = await totalRes.json();
@@ -912,13 +917,15 @@
                     }
 
                     // Fetch unique players
-                    const uniqueRes = await fetch("/api/stats/unique-players");
+                    const uniqueRes = await fetch(
+                        `${API_URL}/stats/unique-players`,
+                    );
                     if (uniqueRes.ok) {
                         const uniqueData = await uniqueRes.json();
                         setCardValue(2, uniqueData.uniquePlayers ?? "0");
                     }
 
-                    const poolRes = await fetch("/api/stats/entry-pool");
+                    const poolRes = await fetch(`${API_URL}/stats/entry-pool`);
                     if (poolRes.ok) {
                         const pool = await poolRes.json();
                         document.getElementById("statPaidBrackets").textContent =
@@ -969,7 +976,7 @@
 
                     // Fetch most predicted winner
                     const winnerRes = await fetch(
-                        "/api/stats/most-predicted-winner",
+                        `${API_URL}/stats/most-predicted-winner`,
                     );
                     if (winnerRes.ok) {
                         const winnerData = await winnerRes.json();
@@ -1027,7 +1034,9 @@
                     }
 
                     // Fetch upset alerts
-                    const upsetRes = await fetch("/api/stats/upset-alerts");
+                    const upsetRes = await fetch(
+                        `${API_URL}/stats/upset-alerts`,
+                    );
                     if (upsetRes.ok) {
                         const upsetData = await upsetRes.json();
                         const tbody = document.getElementById("upsetAlertBody");
@@ -1062,7 +1071,7 @@
 
                     // Fetch popular matchups
                     const matchupsRes = await fetch(
-                        "/api/stats/popular-matchups",
+                        `${API_URL}/stats/popular-matchups`,
                     );
                     if (matchupsRes.ok) {
                         const matchupsData = await matchupsRes.json();
