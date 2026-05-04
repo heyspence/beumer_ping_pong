@@ -178,6 +178,28 @@
                 font-weight: 600;
                 color: #222;
             }
+            .submission-score {
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 16px !important;
+                background: linear-gradient(
+                    135deg,
+                    #667eea 0%,
+                    #764ba2 100%
+                ) !important;
+                color: white !important;
+            }
+            .submission-score .score-value {
+                font-size: 36px;
+                font-weight: bold;
+                display: block;
+            }
+            .submission-score .score-label {
+                font-size: 14px;
+                opacity: 0.9;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
             .bracket-round-block {
                 margin-bottom: 20px;
             }
@@ -511,6 +533,10 @@
                     </label>
                 </div>
                 <div class="submission-meta" id="subMeta">
+                    <div class="submission-score">
+                        <span class="score-value" id="subScore">0</span>
+                        <span class="score-label">Prediction Score</span>
+                    </div>
                     <div>
                         <div class="meta-label">Name</div>
                         <div class="meta-value" id="subName">—</div>
@@ -642,6 +668,33 @@
                 const officialWinner = OFFICIAL_PREDICTIONS[matchId];
                 if (!officialWinner || !winner) return null;
                 return winner === officialWinner ? "aligns" : "misaligns";
+            }
+
+            function calculateScore(flat) {
+                const scoringRules = {
+                    r1_: 1,
+                    r2_: 2,
+                    r3_: 4,
+                    r4_: 8,
+                    r5_: 16,
+                };
+                let score = 0;
+                for (const [matchId, winner] of Object.entries(flat || {})) {
+                    if (!/^r\d+_m\d+$/.test(matchId)) continue;
+                    const officialWinner = OFFICIAL_PREDICTIONS[matchId];
+                    if (!officialWinner) continue;
+                    if (winner === officialWinner) {
+                        for (const [prefix, points] of Object.entries(
+                            scoringRules,
+                        )) {
+                            if (matchId.startsWith(prefix)) {
+                                score += points;
+                                break;
+                            }
+                        }
+                    }
+                }
+                return score;
             }
 
             function getPrevMatchId(source) {
@@ -891,6 +944,7 @@
                     counter.textContent = "0 / 0";
                     prevBtn.disabled = true;
                     nextBtn.disabled = true;
+                    document.getElementById("subScore").textContent = "0";
                     document.getElementById("subName").textContent = "—";
                     document.getElementById("subEntry").textContent = "—";
                     document.getElementById("subTime").textContent = "—";
@@ -903,6 +957,8 @@
                 area.innerHTML = formatBracketVisualHtml(flat);
 
                 counter.textContent = `${submissionIndex + 1} / ${submissionsList.length}`;
+                const score = calculateScore(flat);
+                document.getElementById("subScore").textContent = String(score);
                 const t = p.timestamp
                     ? new Date(p.timestamp).toLocaleString()
                     : "—";
