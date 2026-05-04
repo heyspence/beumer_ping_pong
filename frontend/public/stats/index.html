@@ -562,7 +562,7 @@
         <script>
             // Same host as bracket form — required when opening this file directly (file://)
             // or from any origin; relative "/api/..." only works when served from the backend.
-            const API_URL = "https://ping-pong.spencerheywood.com/api";
+            const API_URL = "http://localhost:8000/api";
 
             function setCardValue(cardIndex1Based, value) {
                 document.querySelector(
@@ -1040,24 +1040,36 @@
             async function loadStats() {
                 try {
                     // Fetch total predictions
-                    const totalRes = await fetch(
-                        `${API_URL}/stats/total-predictions`,
-                    );
-                    if (totalRes.ok) {
-                        const totalData = await totalRes.json();
-                        setCardValue(1, totalData.totalPredictions ?? "0");
+                    try {
+                        const totalRes = await fetch(
+                            `${API_URL}/stats/total-predictions`,
+                        );
+                        if (totalRes.ok) {
+                            const totalData = await totalRes.json();
+                            setCardValue(1, totalData.totalPredictions ?? "0");
+                        }
+                    } catch (e) {
+                        console.log("Failed to fetch total predictions:", e);
+                        setCardValue(1, "-");
                     }
 
                     // Fetch unique players
-                    const uniqueRes = await fetch(
-                        `${API_URL}/stats/unique-players`,
-                    );
-                    if (uniqueRes.ok) {
-                        const uniqueData = await uniqueRes.json();
-                        setCardValue(2, uniqueData.uniquePlayers ?? "0");
+                    try {
+                        const uniqueRes = await fetch(
+                            `${API_URL}/stats/unique-players`,
+                        );
+                        if (uniqueRes.ok) {
+                            const uniqueData = await uniqueRes.json();
+                            setCardValue(2, uniqueData.uniquePlayers ?? "0");
+                        }
+                    } catch (e) {
+                        console.log("Failed to fetch unique players:", e);
+                        setCardValue(2, "-");
                     }
 
-                    const poolRes = await fetch(`${API_URL}/stats/entry-pool`);
+                    let poolRes;
+                    try {
+                        poolRes = await fetch(`${API_URL}/stats/entry-pool`);
                     if (poolRes.ok) {
                         const pool = await poolRes.json();
                         document.getElementById(
@@ -1101,12 +1113,17 @@
                                 tbody.appendChild(tr);
                             });
                         }
+                    } catch (e) {
+                        console.log("Failed to fetch entry pool:", e);
+                        document.getElementById("entryTypeBody").innerHTML =
+                            "<tr><td colspan='2'>No data</td></tr>";
                     }
 
                     // Fetch most predicted winner
-                    const winnerRes = await fetch(
-                        `${API_URL}/stats/most-predicted-winner`,
-                    );
+                    try {
+                        const winnerRes = await fetch(
+                            `${API_URL}/stats/most-predicted-winner`,
+                        );
                     if (winnerRes.ok) {
                         const winnerData = await winnerRes.json();
 
@@ -1116,7 +1133,7 @@
                             winnerData.mostPredictedWinner || "No data yet",
                         );
 
-                        // Update most predicted table with real data
+                        // Update leaderboard table with real data
                         const tbody =
                             document.getElementById("mostPredictedBody");
                         if (
@@ -1160,31 +1177,20 @@
                             tbody.innerHTML =
                                 "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
                         }
+                    } catch (e) {
+                        console.log("Failed to fetch most predicted winner:", e);
+                        setCardValue(3, "-");
+                        document.getElementById("leaderboardBody").innerHTML =
+                            "<tr><td colspan='5'>No data</td></tr>";
                     }
                 } catch (err) {
                     // API not available; show empty state rather than misleading dummy numbers
+                    console.log("loadStats failed:", err);
                     setCardValue(1, "-");
                     setCardValue(2, "-");
-                    setCardValue(3, "Backend offline");
-                    document.getElementById("statPaidBrackets").textContent =
-                        "-";
-                    document.getElementById("statUniquePaidUsers").textContent =
-                        "-";
-                    document.getElementById("statFunOnly").textContent = "-";
-                    document.getElementById("statPrizePool").textContent = "-";
+                    setCardValue(3, "-");
                     document.getElementById("entryTypeBody").innerHTML =
-                        "<tr><td colspan='2'>Backend offline</td></tr>";
-
-                    document.getElementById("subBracketArea").innerHTML =
-                        '<p style="color:#666">Could not load submissions (backend offline?).</p>';
-                    document.getElementById("subCounter").textContent = "—";
-                    document.getElementById("subName").textContent = "—";
-                    document.getElementById("subEntry").textContent = "—";
-                    document.getElementById("subTime").textContent = "—";
-                    document.getElementById("subPrev").disabled = true;
-                    document.getElementById("subNext").disabled = true;
-                    document.getElementById("subJump").innerHTML =
-                        '<option value="">—</option>';
+                        "<tr><td colspan='2'>No data</td></tr>";
                 }
             }
 
