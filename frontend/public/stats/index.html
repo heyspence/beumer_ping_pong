@@ -952,6 +952,7 @@
 
             let submissionsList = [];
             let submissionIndex = 0;
+            let totalPrizePool = 0;
 
             function renderCurrentSubmission() {
                 const area = document.getElementById("subBracketArea");
@@ -1091,12 +1092,16 @@
                             document.getElementById("statFunOnly").textContent =
                                 String(pool.funBracketCount ?? "0");
                             const usd = Number(pool.totalPrizePoolUSD) || 0;
+                            totalPrizePool = usd;
                             document.getElementById(
                                 "statPrizePool",
                             ).textContent = usd.toLocaleString("en-US", {
                                 style: "currency",
                                 currency: "USD",
                             });
+
+                            // Re-render leaderboard with prize pool data
+                            renderLeaderboard();
 
                             const tbody =
                                 document.getElementById("entryTypeBody");
@@ -1175,11 +1180,7 @@
                     return;
                 }
 
-                // Get total prize pool from stat element
-                const prizePoolText =
-                    document.getElementById("statPrizePool").textContent;
-                const totalPrizePool =
-                    parseFloat(prizePoolText.replace(/[^0-9.]/g, "")) || 0;
+                // Use global totalPrizePool variable (set by loadStats)
 
                 // Calculate scores for all submissions
                 const scoredSubmissions = submissionsList.map((sub, index) => {
@@ -1208,15 +1209,25 @@
                         formatBetTypeLabel(sub.betType),
                     );
 
-                    // Calculate prize for paid entries (top 3 only)
+                    // Calculate prize for paid entries only (top 3, excluding fun)
                     let prizeDisplay = "—";
                     if (totalPrizePool > 0 && sub.betType !== "fun") {
+                        // Only top 3 paid entries get prizes (skip fun entries in ranking)
+                        let paidRank = -1;
+                        let countPaid = 0;
+                        for (let i = 0; i <= rank; i++) {
+                            if (scoredSubmissions[i].betType !== "fun") {
+                                paidRank = countPaid;
+                                countPaid++;
+                            }
+                        }
+
                         const payoutPercent =
-                            rank === 0
+                            paidRank === 0
                                 ? 0.7
-                                : rank === 1
+                                : paidRank === 1
                                   ? 0.2
-                                  : rank === 2
+                                  : paidRank === 2
                                     ? 0.1
                                     : 0;
                         if (payoutPercent > 0) {
@@ -1228,13 +1239,23 @@
                         }
                     }
 
+                    // Determine if this is a top 3 paid entry for styling
+                    let paidRankForStyle = -1;
+                    let countPaid = 0;
+                    for (let i = 0; i <= rank; i++) {
+                        if (scoredSubmissions[i].betType !== "fun") {
+                            paidRankForStyle = countPaid;
+                            countPaid++;
+                        }
+                    }
+
                     tr.innerHTML = `
                         <td class="leaderboard-rank">#${rank + 1}</td>
                         <td>${playerName}</td>
                         <td class="leaderboard-score">${sub.score} pts</td>
                         <td>${entryType}</td>
                         <td style="font-size: 12px;">${t}</td>
-                        <td style="font-weight: ${rank < 3 && totalPrizePool > 0 ? "bold" : "normal"}; color: ${rank === 0 ? "#22c55e" : rank === 1 ? "#84cc16" : rank === 2 ? "#a3e635" : ""}">${prizeDisplay}</td>
+                        <td style="font-weight: ${paidRankForStyle >= 0 && paidRankForStyle < 3 ? "bold" : "normal"}; color: ${paidRankForStyle === 0 ? "#22c55e" : paidRankForStyle === 1 ? "#84cc16" : paidRankForStyle === 2 ? "#a3e635" : ""}">${prizeDisplay}</td>
                     `;
                     tbody.appendChild(tr);
                 });
