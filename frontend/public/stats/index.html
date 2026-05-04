@@ -712,7 +712,18 @@
                 r5_m1: "Pierre Damis",
             };
 
+            // Matches excluded from scoring and border display
+            const EXCLUDED_MATCHES = new Set([
+                "r1_m8",
+                "r1_m12",
+                "r1_m16",
+                "r2_m4",
+                "r3_m2",
+            ]);
+
             function getPredictionAlignment(matchId, winner) {
+                // Skip excluded matches - no border display
+                if (EXCLUDED_MATCHES.has(matchId)) return null;
                 const officialWinner = OFFICIAL_PREDICTIONS[matchId];
                 if (!officialWinner || !winner) return null;
                 return winner === officialWinner ? "aligns" : "misaligns";
@@ -728,6 +739,8 @@
                 };
                 let score = 0;
                 for (const [matchId, winner] of Object.entries(flat || {})) {
+                    // Skip excluded matches from scoring
+                    if (EXCLUDED_MATCHES.has(matchId)) continue;
                     if (!/^r\d+_m\d+$/.test(matchId)) continue;
                     const officialWinner = OFFICIAL_PREDICTIONS[matchId];
                     if (!officialWinner) continue;
