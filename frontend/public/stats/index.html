@@ -1356,8 +1356,40 @@
                 });
             }
 
+            // Set up event listeners for submission navigation
+            function setupNavigationListeners() {
+                document
+                    .getElementById("subPrev")
+                    .addEventListener("click", () => {
+                        if (submissionIndex > 0) {
+                            submissionIndex--;
+                            renderCurrentSubmission();
+                        }
+                    });
+                document
+                    .getElementById("subNext")
+                    .addEventListener("click", () => {
+                        if (submissionIndex < submissionsList.length - 1) {
+                            submissionIndex++;
+                            renderCurrentSubmission();
+                        }
+                    });
+                document
+                    .getElementById("subJump")
+                    .addEventListener("change", (e) => {
+                        const v = e.target.value;
+                        if (v === "") return;
+                        const i = parseInt(v, 10);
+                        if (!Number.isNaN(i)) {
+                            submissionIndex = i;
+                            renderCurrentSubmission();
+                        }
+                    });
+            }
+
             // Load real stats when DOM is ready, fallback to dummy data if API fails
             document.addEventListener("DOMContentLoaded", () => {
+                setupNavigationListeners();
                 loadStats().catch((err) => {
                     console.log("API failed:", err);
                 });
