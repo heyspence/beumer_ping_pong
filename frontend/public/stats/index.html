@@ -210,10 +210,9 @@
             .bracket-arena {
                 display: grid;
                 grid-template-columns: 1fr minmax(200px, 280px) 1fr;
-                grid-template-rows: minmax(220px, auto) minmax(
-                        180px,
-                        auto
-                    ) minmax(220px, auto);
+                grid-template-rows:
+                    minmax(220px, auto) minmax(180px, auto)
+                    minmax(220px, auto);
                 gap: 14px;
                 align-items: stretch;
                 min-width: 720px;
@@ -534,8 +533,7 @@
         <script>
             // Same host as bracket form — required when opening this file directly (file://)
             // or from any origin; relative "/api/..." only works when served from the backend.
-            // Intentionally HTTP (not HTTPS) for this deployment.
-            const API_URL = "http://ping-pong.spencerheywood.com/api";
+            const API_URL = "https://ping-pong.spencerheywood.com/api";
 
             function setCardValue(cardIndex1Based, value) {
                 document.querySelector(
