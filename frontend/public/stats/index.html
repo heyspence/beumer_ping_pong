@@ -1070,48 +1070,55 @@
                     let poolRes;
                     try {
                         poolRes = await fetch(`${API_URL}/stats/entry-pool`);
-                    if (poolRes.ok) {
-                        const pool = await poolRes.json();
-                        document.getElementById(
-                            "statPaidBrackets",
-                        ).textContent = String(pool.paidBracketCount ?? "0");
-                        document.getElementById(
-                            "statUniquePaidUsers",
-                        ).textContent = String(
-                            pool.uniqueUsersWithPaidBet ?? "0",
-                        );
-                        document.getElementById("statFunOnly").textContent =
-                            String(pool.funBracketCount ?? "0");
-                        const usd = Number(pool.totalPrizePoolUSD) || 0;
-                        document.getElementById("statPrizePool").textContent =
-                            usd.toLocaleString("en-US", {
+                        if (poolRes.ok) {
+                            const pool = await poolRes.json();
+                            document.getElementById(
+                                "statPaidBrackets",
+                            ).textContent = String(
+                                pool.paidBracketCount ?? "0",
+                            );
+                            document.getElementById(
+                                "statUniquePaidUsers",
+                            ).textContent = String(
+                                pool.uniqueUsersWithPaidBet ?? "0",
+                            );
+                            document.getElementById("statFunOnly").textContent =
+                                String(pool.funBracketCount ?? "0");
+                            const usd = Number(pool.totalPrizePoolUSD) || 0;
+                            document.getElementById(
+                                "statPrizePool",
+                            ).textContent = usd.toLocaleString("en-US", {
                                 style: "currency",
                                 currency: "USD",
                             });
 
-                        const tbody = document.getElementById("entryTypeBody");
-                        tbody.innerHTML = "";
-                        const entries = Object.entries(pool.byBetType || {});
-                        entries.sort((a, b) => {
-                            const order = (k) =>
-                                k === "fun" ? 0 : k.startsWith("$") ? 1 : 2;
-                            const d = order(a[0]) - order(b[0]);
-                            if (d !== 0) return d;
-                            return a[0].localeCompare(b[0]);
-                        });
-                        if (entries.length === 0) {
-                            tbody.innerHTML =
-                                "<tr><td colspan='2'>No data yet</td></tr>";
-                        } else {
-                            entries.forEach(([type, count]) => {
-                                const label =
-                                    type === "fun"
-                                        ? "Submit for Fun (no bet)"
-                                        : type;
-                                const tr = document.createElement("tr");
-                                tr.innerHTML = `<td>${label}</td><td>${count}</td>`;
-                                tbody.appendChild(tr);
+                            const tbody =
+                                document.getElementById("entryTypeBody");
+                            tbody.innerHTML = "";
+                            const entries = Object.entries(
+                                pool.byBetType || {},
+                            );
+                            entries.sort((a, b) => {
+                                const order = (k) =>
+                                    k === "fun" ? 0 : k.startsWith("$") ? 1 : 2;
+                                const d = order(a[0]) - order(b[0]);
+                                if (d !== 0) return d;
+                                return a[0].localeCompare(b[0]);
                             });
+                            if (entries.length === 0) {
+                                tbody.innerHTML =
+                                    "<tr><td colspan='2'>No data yet</td></tr>";
+                            } else {
+                                entries.forEach(([type, count]) => {
+                                    const label =
+                                        type === "fun"
+                                            ? "Submit for Fun (no bet)"
+                                            : type;
+                                    const tr = document.createElement("tr");
+                                    tr.innerHTML = `<td>${label}</td><td>${count}</td>`;
+                                    tbody.appendChild(tr);
+                                });
+                            }
                         }
                     } catch (e) {
                         console.log("Failed to fetch entry pool:", e);
@@ -1124,61 +1131,67 @@
                         const winnerRes = await fetch(
                             `${API_URL}/stats/most-predicted-winner`,
                         );
-                    if (winnerRes.ok) {
-                        const winnerData = await winnerRes.json();
+                        if (winnerRes.ok) {
+                            const winnerData = await winnerRes.json();
 
-                        // Update stat card value
-                        setCardValue(
-                            3,
-                            winnerData.mostPredictedWinner || "No data yet",
-                        );
+                            // Update stat card value
+                            setCardValue(
+                                3,
+                                winnerData.mostPredictedWinner || "No data yet",
+                            );
 
-                        // Update leaderboard table with real data
-                        const tbody =
-                            document.getElementById("mostPredictedBody");
-                        if (
-                            winnerData.breakdown &&
-                            Array.isArray(winnerData.breakdown) &&
-                            winnerData.breakdown.length > 0
-                        ) {
-                            tbody.innerHTML = "";
-                            winnerData.breakdown
-                                .filter((row) => !shouldHideRound(row.round))
-                                .forEach((row) => {
-                                    const tr = document.createElement("tr");
-                                    tr.innerHTML = `
+                            // Update leaderboard table with real data
+                            const tbody =
+                                document.getElementById("mostPredictedBody");
+                            if (
+                                winnerData.breakdown &&
+                                Array.isArray(winnerData.breakdown) &&
+                                winnerData.breakdown.length > 0
+                            ) {
+                                tbody.innerHTML = "";
+                                winnerData.breakdown
+                                    .filter(
+                                        (row) => !shouldHideRound(row.round),
+                                    )
+                                    .forEach((row) => {
+                                        const tr = document.createElement("tr");
+                                        tr.innerHTML = `
                                     <td>${row.round}</td>
                                     <td><span class="player-name">${row.playerName}</span></td>
                                     <td><span class="win-count">${row.count}</span> predictions</td>
                                     <td>${row.totalPlayers || "-"}</td>
                                     <td>${row.percent}%</td>
                                 `;
-                                    tbody.appendChild(tr);
-                                });
+                                        tbody.appendChild(tr);
+                                    });
 
-                            if (tbody.children.length === 0) {
-                                tbody.innerHTML =
-                                    "<tr><td colspan='5'>No stats for these rounds</td></tr>";
-                            }
-                        } else if (winnerData.totalPredictions > 0) {
-                            // Show overall stats when no round breakdown available
-                            tbody.innerHTML = "";
-                            const tr = document.createElement("tr");
-                            tr.innerHTML = `
+                                if (tbody.children.length === 0) {
+                                    tbody.innerHTML =
+                                        "<tr><td colspan='5'>No stats for these rounds</td></tr>";
+                                }
+                            } else if (winnerData.totalPredictions > 0) {
+                                // Show overall stats when no round breakdown available
+                                tbody.innerHTML = "";
+                                const tr = document.createElement("tr");
+                                tr.innerHTML = `
                                     <td>Overall</td>
                                     <td><span class="player-name">${winnerData.mostPredictedWinner}</span></td>
                                     <td><span class="win-count">${winnerData.winCount}</span> predictions</td>
                                     <td>-</td>
                                     <td>${Math.round((winnerData.winCount / winnerData.totalPredictions) * 100)}%</td>
                                 `;
-                            tbody.appendChild(tr);
-                        } else {
-                            // No data yet - show empty state
-                            tbody.innerHTML =
-                                "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
+                                tbody.appendChild(tr);
+                            } else {
+                                // No data yet - show empty state
+                                tbody.innerHTML =
+                                    "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
+                            }
                         }
                     } catch (e) {
-                        console.log("Failed to fetch most predicted winner:", e);
+                        console.log(
+                            "Failed to fetch most predicted winner:",
+                            e,
+                        );
                         setCardValue(3, "-");
                         document.getElementById("leaderboardBody").innerHTML =
                             "<tr><td colspan='5'>No data</td></tr>";
