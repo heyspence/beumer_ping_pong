@@ -487,47 +487,20 @@
                 <tbody id="entryTypeBody"></tbody>
             </table>
 
-            <h3>🏆 Most Predicted Winners (By Round)</h3>
-            <table id="mostPredictedTable">
+            <h3 class="section-title" style="margin-top: 40px">
+                🏆 Leaderboard (by score)
+            </h3>
+            <table class="leaderboard-table" id="leaderboardTable">
                 <thead>
                     <tr>
-                        <th>Round</th>
-                        <th>Player Name</th>
-                        <th>Predictions Count</th>
-                        <th>Total Players</th>
-                        <th>% of Predictions</th>
+                        <th style="width: 60px">Rank</th>
+                        <th>Name</th>
+                        <th style="width: 120px">Score</th>
+                        <th style="width: 150px">Entry Type</th>
+                        <th style="width: 180px">Submitted</th>
                     </tr>
                 </thead>
-                <tbody id="mostPredictedBody">
-                    <!-- Data will be populated below -->
-                </tbody>
-            </table>
-
-            <h3>📊 Upset Alerts (Least Predicted Winners)</h3>
-            <table id="upsetAlertTable">
-                <thead>
-                    <tr>
-                        <th>Round</th>
-                        <th>Player Name</th>
-                        <th>Predictions Count</th>
-                        <th>% of Predictions</th>
-                    </tr>
-                </thead>
-                <tbody id="upsetAlertBody">
-                    <!-- Data will be populated below -->
-                </tbody>
-            </table>
-
-            <h3>🔥 Popular Matchups (Most Discussed)</h3>
-            <table id="popularMatchupsTable">
-                <thead>
-                    <tr>
-                        <th>Round</th>
-                        <th>Matchup</th>
-                        <th>Predictions Count</th>
-                    </tr>
-                </thead>
-                <tbody id="popularMatchupsBody">
+                <tbody id="leaderboardBody">
                     <!-- Data will be populated below -->
                 </tbody>
             </table>
@@ -584,24 +557,6 @@
                     <p style="color: #666">Loading…</p>
                 </div>
             </div>
-
-            <h3 class="section-title" style="margin-top: 40px">
-                🏆 Leaderboard (by score)
-            </h3>
-            <table class="leaderboard-table" id="leaderboardTable">
-                <thead>
-                    <tr>
-                        <th style="width: 60px">Rank</th>
-                        <th>Name</th>
-                        <th style="width: 120px">Score</th>
-                        <th style="width: 150px">Entry Type</th>
-                        <th style="width: 180px">Submitted</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboardBody">
-                    <!-- Data will be populated below -->
-                </tbody>
-            </table>
         </div>
 
         <script>
@@ -1206,79 +1161,6 @@
                                 "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
                         }
                     }
-
-                    // Fetch upset alerts
-                    const upsetRes = await fetch(
-                        `${API_URL}/stats/upset-alerts`,
-                    );
-                    if (upsetRes.ok) {
-                        const upsetData = await upsetRes.json();
-                        const tbody = document.getElementById("upsetAlertBody");
-                        tbody.innerHTML = "";
-                        if (
-                            upsetData.upsetAlerts &&
-                            Array.isArray(upsetData.upsetAlerts) &&
-                            upsetData.upsetAlerts.length > 0
-                        ) {
-                            upsetData.upsetAlerts
-                                .filter((row) => !shouldHideRound(row.round))
-                                .forEach((row) => {
-                                    const tr = document.createElement("tr");
-                                    tr.innerHTML = `
-                                    <td>${row.round}</td>
-                                    <td><span class="player-name">${row.playerName}</span></td>
-                                    <td><span style="color: #dc3545;">${row.count} predictions</span></td>
-                                    <td>${row.percent}%</td>
-                                `;
-                                    tbody.appendChild(tr);
-                                });
-
-                            if (tbody.children.length === 0) {
-                                tbody.innerHTML =
-                                    "<tr><td colspan='4'>No stats for these rounds</td></tr>";
-                            }
-                        } else {
-                            tbody.innerHTML =
-                                "<tr><td colspan='4'>No predictions submitted yet</td></tr>";
-                        }
-                    }
-
-                    // Fetch popular matchups
-                    const matchupsRes = await fetch(
-                        `${API_URL}/stats/popular-matchups`,
-                    );
-                    if (matchupsRes.ok) {
-                        const matchupsData = await matchupsRes.json();
-                        const tbody = document.getElementById(
-                            "popularMatchupsBody",
-                        );
-                        tbody.innerHTML = "";
-                        if (
-                            matchupsData.popularMatchups &&
-                            Array.isArray(matchupsData.popularMatchups) &&
-                            matchupsData.popularMatchups.length > 0
-                        ) {
-                            matchupsData.popularMatchups
-                                .filter((row) => !shouldHideRound(row.round))
-                                .forEach((row) => {
-                                    const tr = document.createElement("tr");
-                                    tr.innerHTML = `
-                                    <td>${row.round}</td>
-                                    <td><strong>${row.matchup}</strong></td>
-                                    <td>${row.count} predictions</td>
-                                `;
-                                    tbody.appendChild(tr);
-                                });
-
-                            if (tbody.children.length === 0) {
-                                tbody.innerHTML =
-                                    "<tr><td colspan='3'>No stats for these rounds</td></tr>";
-                            }
-                        } else {
-                            tbody.innerHTML =
-                                "<tr><td colspan='3'>No predictions submitted yet</td></tr>";
-                        }
-                    }
                 } catch (err) {
                     // API not available; show empty state rather than misleading dummy numbers
                     setCardValue(1, "-");
@@ -1292,12 +1174,7 @@
                     document.getElementById("statPrizePool").textContent = "-";
                     document.getElementById("entryTypeBody").innerHTML =
                         "<tr><td colspan='2'>Backend offline</td></tr>";
-                    document.getElementById("mostPredictedBody").innerHTML =
-                        "<tr><td colspan='5'>Backend offline</td></tr>";
-                    document.getElementById("upsetAlertBody").innerHTML =
-                        "<tr><td colspan='4'>Backend offline</td></tr>";
-                    document.getElementById("popularMatchupsBody").innerHTML =
-                        "<tr><td colspan='3'>Backend offline</td></tr>";
+
                     document.getElementById("subBracketArea").innerHTML =
                         '<p style="color:#666">Could not load submissions (backend offline?).</p>';
                     document.getElementById("subCounter").textContent = "—";
