@@ -1140,52 +1140,8 @@
                                 winnerData.mostPredictedWinner || "No data yet",
                             );
 
-                            // Update leaderboard table with real data
-                            const tbody =
-                                document.getElementById("mostPredictedBody");
-                            if (
-                                winnerData.breakdown &&
-                                Array.isArray(winnerData.breakdown) &&
-                                winnerData.breakdown.length > 0
-                            ) {
-                                tbody.innerHTML = "";
-                                winnerData.breakdown
-                                    .filter(
-                                        (row) => !shouldHideRound(row.round),
-                                    )
-                                    .forEach((row) => {
-                                        const tr = document.createElement("tr");
-                                        tr.innerHTML = `
-                                    <td>${row.round}</td>
-                                    <td><span class="player-name">${row.playerName}</span></td>
-                                    <td><span class="win-count">${row.count}</span> predictions</td>
-                                    <td>${row.totalPlayers || "-"}</td>
-                                    <td>${row.percent}%</td>
-                                `;
-                                        tbody.appendChild(tr);
-                                    });
-
-                                if (tbody.children.length === 0) {
-                                    tbody.innerHTML =
-                                        "<tr><td colspan='5'>No stats for these rounds</td></tr>";
-                                }
-                            } else if (winnerData.totalPredictions > 0) {
-                                // Show overall stats when no round breakdown available
-                                tbody.innerHTML = "";
-                                const tr = document.createElement("tr");
-                                tr.innerHTML = `
-                                    <td>Overall</td>
-                                    <td><span class="player-name">${winnerData.mostPredictedWinner}</span></td>
-                                    <td><span class="win-count">${winnerData.winCount}</span> predictions</td>
-                                    <td>-</td>
-                                    <td>${Math.round((winnerData.winCount / winnerData.totalPredictions) * 100)}%</td>
-                                `;
-                                tbody.appendChild(tr);
-                            } else {
-                                // No data yet - show empty state
-                                tbody.innerHTML =
-                                    "<tr><td colspan='5'>No predictions submitted yet</td></tr>";
-                            }
+                            // Note: Most predicted winner breakdown not displayed in a separate table
+                            // The stat card above shows the most predicted winner name
                         }
                     } catch (e) {
                         console.log(
@@ -1193,8 +1149,6 @@
                             e,
                         );
                         setCardValue(3, "-");
-                        document.getElementById("leaderboardBody").innerHTML =
-                            "<tr><td colspan='5'>No data</td></tr>";
                     }
                 } catch (err) {
                     // API not available; show empty state rather than misleading dummy numbers
