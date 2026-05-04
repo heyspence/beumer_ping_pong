@@ -210,10 +210,10 @@
             .bracket-arena {
                 display: grid;
                 grid-template-columns: 1fr minmax(200px, 280px) 1fr;
-                grid-template-rows: minmax(220px, auto) minmax(180px, auto) minmax(
-                    220px,
-                    auto
-                );
+                grid-template-rows: minmax(220px, auto) minmax(
+                        180px,
+                        auto
+                    ) minmax(220px, auto);
                 gap: 14px;
                 align-items: stretch;
                 min-width: 720px;
@@ -301,6 +301,12 @@
                 background: #fff;
                 font-size: 12px;
                 min-width: 0;
+            }
+            .bracket-match.pred-aligns {
+                border: 2px solid #28a745;
+            }
+            .bracket-match.pred-misaligns {
+                border: 2px solid #dc3545;
             }
             .bracket-match-id {
                 font-size: 9px;
@@ -398,7 +404,9 @@
                 <div class="stat-card">
                     <h2>Users who bet</h2>
                     <div class="value" id="statUniquePaidUsers">-</div>
-                    <p class="hint">Unique names with at least one paid bracket</p>
+                    <p class="hint">
+                        Unique names with at least one paid bracket
+                    </p>
                 </div>
                 <div class="stat-card">
                     <h2>Fun only (no bet)</h2>
@@ -407,7 +415,11 @@
                 </div>
                 <div class="stat-card">
                     <h2>Total prize pool</h2>
-                    <div class="value" id="statPrizePool" style="font-size: 26px">
+                    <div
+                        class="value"
+                        id="statPrizePool"
+                        style="font-size: 26px"
+                    >
                         -
                     </div>
                     <p class="hint">Sum of all paid entry fees collected</p>
@@ -474,9 +486,9 @@
                     👀 Browse submissions
                 </h3>
                 <p style="color: #666; margin-bottom: 16px; font-size: 14px">
-                    Step through each saved bracket. Four regional quadrants feed
-                    the championship column in the center (winner highlighted in
-                    green).
+                    Step through each saved bracket. Four regional quadrants
+                    feed the championship column in the center (winner
+                    highlighted in green).
                 </p>
                 <div class="submission-toolbar">
                     <button type="button" class="btn-nav" id="subPrev">
@@ -487,7 +499,9 @@
                     </button>
                     <span class="counter" id="subCounter">—</span>
                     <label style="display: flex; align-items: center; gap: 8px">
-                        <span style="font-size: 14px; color: #666">Jump to</span>
+                        <span style="font-size: 14px; color: #666"
+                            >Jump to</span
+                        >
                         <select
                             class="jump-select"
                             id="subJump"
@@ -518,6 +532,11 @@
         </div>
 
         <script>
+            // Same host as bracket form — required when opening this file directly (file://)
+            // or from any origin; relative "/api/..." only works when served from the backend.
+            // Intentionally HTTP (not HTTPS) for this deployment.
+            const API_URL = "http://ping-pong.spencerheywood.com/api";
+
             function setCardValue(cardIndex1Based, value) {
                 document.querySelector(
                     `.stats-grid .stat-card:nth-child(${cardIndex1Based}) .value`,
@@ -586,6 +605,46 @@
                 },
                 { match: 16, player1: "Pierre Damis", player2: "Bye" },
             ];
+
+            const OFFICIAL_PREDICTIONS = {
+                r1_m1: "Kevin Blum",
+                r1_m2: "Ben Schenkelker",
+                r1_m3: "Daniel White",
+                r1_m4: "Izabella Ksiazek",
+                r1_m5: "Tom Slawinski",
+                r1_m6: "Jundy Lacuata",
+                r1_m7: "Pedro de Resende",
+                r1_m8: "Xin Liu",
+                r1_m9: "Bill Tamashunas",
+                r1_m10: "Drew Rodriguez",
+                r1_m11: "Dvir Hizkiyahu",
+                r1_m12: "Miguel Ferreira",
+                r1_m13: "Adam Zukowski",
+                r1_m14: "Lorenz Nunag",
+                r1_m15: "Brian McMahon",
+                r1_m16: "Pierre Damis",
+                r2_m1: "Kevin Blum",
+                r2_m2: "Daniel White",
+                r2_m3: "Jundy Lacuata",
+                r2_m4: "Pedro de Resende",
+                r2_m5: "Bill Tamashunas",
+                r2_m6: "Miguel Ferreira",
+                r2_m7: "Adam Zukowski",
+                r2_m8: "Pierre Damis",
+                r3_m1: "Kevin Blum",
+                r3_m2: "Jundy Lacuata",
+                r3_m3: "Miguel Ferreira",
+                r3_m4: "Pierre Damis",
+                r4_m1: "Kevin Blum",
+                r4_m2: "Pierre Damis",
+                r5_m1: "Pierre Damis",
+            };
+
+            function getPredictionAlignment(matchId, winner) {
+                const officialWinner = OFFICIAL_PREDICTIONS[matchId];
+                if (!officialWinner || !winner) return null;
+                return winner === officialWinner ? "aligns" : "misaligns";
+            }
 
             function getPrevMatchId(source) {
                 const m = String(source).match(/^(r\d+)_m(\d+)/);
@@ -706,7 +765,7 @@
                 },
             };
 
-            function matchBoxHtml(m) {
+            function matchBoxHtml(m, matchId) {
                 if (!m) {
                     return '<div class="bracket-match"><div class="bracket-player">—</div></div>';
                 }
@@ -720,7 +779,14 @@
                 const byeA = a === "Bye" ? " is-bye" : "";
                 const byeB = b === "Bye" ? " is-bye" : "";
                 const byeWrap = m.isBye ? " match-bye" : "";
-                return `<div class="bracket-match${byeWrap}">
+                const predAlign = getPredictionAlignment(matchId, w);
+                const predClass =
+                    predAlign === "aligns"
+                        ? " pred-aligns"
+                        : predAlign === "misaligns"
+                          ? " pred-misaligns"
+                          : "";
+                return `<div class="bracket-match${byeWrap}${predClass}">
                     <div class="bracket-match-id">${escapeHtml(m.id)}</div>
                     <div class="bracket-player${clsA}${byeA}">${escapeHtml(a)}</div>
                     <div class="bracket-player${clsB}${byeB}">${escapeHtml(b)}</div>
@@ -733,15 +799,15 @@
                 inner += `<div class="quarter-sub">${escapeHtml(q.sub)}</div>`;
                 inner += `<div class="round-label-mini">Round of 32</div><div class="quarter-r32-grid">`;
                 q.r32.forEach((id) => {
-                    inner += matchBoxHtml(matchMap[id]);
+                    inner += matchBoxHtml(matchMap[id], id);
                 });
                 inner += `</div><div class="round-label-mini">Round of 16</div><div class="quarter-r16-row">`;
                 q.r16.forEach((id) => {
-                    inner += matchBoxHtml(matchMap[id]);
+                    inner += matchBoxHtml(matchMap[id], id);
                 });
                 inner += `</div><div class="round-label-mini">Quarterfinals</div><div class="quarter-qf-row">`;
                 q.qf.forEach((id) => {
-                    inner += matchBoxHtml(matchMap[id]);
+                    inner += matchBoxHtml(matchMap[id], id);
                 });
                 inner += "</div>";
                 return `<div class="bracket-corner corner-${quarterKey}">${inner}</div>`;
@@ -769,10 +835,10 @@
                     html += `<div class="bracket-center">
                     <div class="bracket-center-title">Championship</div>
                     <div class="round-label-mini" style="text-align:center">Semifinals</div>
-                    ${matchBoxHtml(matchMap["r4_m1"])}
-                    ${matchBoxHtml(matchMap["r4_m2"])}
+                    ${matchBoxHtml(matchMap["r4_m1"], "r4_m1")}
+                    ${matchBoxHtml(matchMap["r4_m2"], "r4_m2")}
                     <div class="round-label-mini" style="text-align:center">Final</div>
-                    ${matchBoxHtml(matchMap["r5_m1"])}
+                    ${matchBoxHtml(matchMap["r5_m1"], "r5_m1")}
                 </div>`;
                     html += "</div></div>";
                 }
@@ -859,7 +925,7 @@
                 const area = document.getElementById("subBracketArea");
                 const jump = document.getElementById("subJump");
                 try {
-                    const res = await fetch("/api/predictions");
+                    const res = await fetch(`${API_URL}/predictions`);
                     if (!res.ok) throw new Error("bad status");
                     const data = await res.json();
                     submissionsList = Array.isArray(data) ? data : [];
@@ -904,7 +970,7 @@
                 try {
                     // Fetch total predictions
                     const totalRes = await fetch(
-                        "/api/stats/total-predictions",
+                        `${API_URL}/stats/total-predictions`,
                     );
                     if (totalRes.ok) {
                         const totalData = await totalRes.json();
@@ -912,17 +978,20 @@
                     }
 
                     // Fetch unique players
-                    const uniqueRes = await fetch("/api/stats/unique-players");
+                    const uniqueRes = await fetch(
+                        `${API_URL}/stats/unique-players`,
+                    );
                     if (uniqueRes.ok) {
                         const uniqueData = await uniqueRes.json();
                         setCardValue(2, uniqueData.uniquePlayers ?? "0");
                     }
 
-                    const poolRes = await fetch("/api/stats/entry-pool");
+                    const poolRes = await fetch(`${API_URL}/stats/entry-pool`);
                     if (poolRes.ok) {
                         const pool = await poolRes.json();
-                        document.getElementById("statPaidBrackets").textContent =
-                            String(pool.paidBracketCount ?? "0");
+                        document.getElementById(
+                            "statPaidBrackets",
+                        ).textContent = String(pool.paidBracketCount ?? "0");
                         document.getElementById(
                             "statUniquePaidUsers",
                         ).textContent = String(
@@ -942,11 +1011,7 @@
                         const entries = Object.entries(pool.byBetType || {});
                         entries.sort((a, b) => {
                             const order = (k) =>
-                                k === "fun"
-                                    ? 0
-                                    : k.startsWith("$")
-                                      ? 1
-                                      : 2;
+                                k === "fun" ? 0 : k.startsWith("$") ? 1 : 2;
                             const d = order(a[0]) - order(b[0]);
                             if (d !== 0) return d;
                             return a[0].localeCompare(b[0]);
@@ -969,7 +1034,7 @@
 
                     // Fetch most predicted winner
                     const winnerRes = await fetch(
-                        "/api/stats/most-predicted-winner",
+                        `${API_URL}/stats/most-predicted-winner`,
                     );
                     if (winnerRes.ok) {
                         const winnerData = await winnerRes.json();
@@ -992,16 +1057,16 @@
                             winnerData.breakdown
                                 .filter((row) => !shouldHideRound(row.round))
                                 .forEach((row) => {
-                                const tr = document.createElement("tr");
-                                tr.innerHTML = `
+                                    const tr = document.createElement("tr");
+                                    tr.innerHTML = `
                                     <td>${row.round}</td>
                                     <td><span class="player-name">${row.playerName}</span></td>
                                     <td><span class="win-count">${row.count}</span> predictions</td>
                                     <td>${row.totalPlayers || "-"}</td>
                                     <td>${row.percent}%</td>
                                 `;
-                                tbody.appendChild(tr);
-                            });
+                                    tbody.appendChild(tr);
+                                });
 
                             if (tbody.children.length === 0) {
                                 tbody.innerHTML =
@@ -1027,7 +1092,9 @@
                     }
 
                     // Fetch upset alerts
-                    const upsetRes = await fetch("/api/stats/upset-alerts");
+                    const upsetRes = await fetch(
+                        `${API_URL}/stats/upset-alerts`,
+                    );
                     if (upsetRes.ok) {
                         const upsetData = await upsetRes.json();
                         const tbody = document.getElementById("upsetAlertBody");
@@ -1040,15 +1107,15 @@
                             upsetData.upsetAlerts
                                 .filter((row) => !shouldHideRound(row.round))
                                 .forEach((row) => {
-                                const tr = document.createElement("tr");
-                                tr.innerHTML = `
+                                    const tr = document.createElement("tr");
+                                    tr.innerHTML = `
                                     <td>${row.round}</td>
                                     <td><span class="player-name">${row.playerName}</span></td>
                                     <td><span style="color: #dc3545;">${row.count} predictions</span></td>
                                     <td>${row.percent}%</td>
                                 `;
-                                tbody.appendChild(tr);
-                            });
+                                    tbody.appendChild(tr);
+                                });
 
                             if (tbody.children.length === 0) {
                                 tbody.innerHTML =
@@ -1062,12 +1129,13 @@
 
                     // Fetch popular matchups
                     const matchupsRes = await fetch(
-                        "/api/stats/popular-matchups",
+                        `${API_URL}/stats/popular-matchups`,
                     );
                     if (matchupsRes.ok) {
                         const matchupsData = await matchupsRes.json();
-                        const tbody =
-                            document.getElementById("popularMatchupsBody");
+                        const tbody = document.getElementById(
+                            "popularMatchupsBody",
+                        );
                         tbody.innerHTML = "";
                         if (
                             matchupsData.popularMatchups &&
@@ -1077,14 +1145,14 @@
                             matchupsData.popularMatchups
                                 .filter((row) => !shouldHideRound(row.round))
                                 .forEach((row) => {
-                                const tr = document.createElement("tr");
-                                tr.innerHTML = `
+                                    const tr = document.createElement("tr");
+                                    tr.innerHTML = `
                                     <td>${row.round}</td>
                                     <td><strong>${row.matchup}</strong></td>
                                     <td>${row.count} predictions</td>
                                 `;
-                                tbody.appendChild(tr);
-                            });
+                                    tbody.appendChild(tr);
+                                });
 
                             if (tbody.children.length === 0) {
                                 tbody.innerHTML =
@@ -1129,18 +1197,22 @@
 
             // Load real stats when DOM is ready, fallback to dummy data if API fails
             document.addEventListener("DOMContentLoaded", () => {
-                document.getElementById("subPrev").addEventListener("click", () => {
-                    if (submissionIndex > 0) {
-                        submissionIndex--;
-                        renderCurrentSubmission();
-                    }
-                });
-                document.getElementById("subNext").addEventListener("click", () => {
-                    if (submissionIndex < submissionsList.length - 1) {
-                        submissionIndex++;
-                        renderCurrentSubmission();
-                    }
-                });
+                document
+                    .getElementById("subPrev")
+                    .addEventListener("click", () => {
+                        if (submissionIndex > 0) {
+                            submissionIndex--;
+                            renderCurrentSubmission();
+                        }
+                    });
+                document
+                    .getElementById("subNext")
+                    .addEventListener("click", () => {
+                        if (submissionIndex < submissionsList.length - 1) {
+                            submissionIndex++;
+                            renderCurrentSubmission();
+                        }
+                    });
                 document
                     .getElementById("subJump")
                     .addEventListener("change", (e) => {
